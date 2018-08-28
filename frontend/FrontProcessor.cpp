@@ -56,10 +56,12 @@ void FrontProcessor::processFrame(unsigned char *rgbImage, vector<Point2f> point
     cv::Mat logo = imread("icon.jpg", 1);
     cvtColor(logo, logo, CV_RGB2BGR);//CV_RGB2GRAY
 
-    cv::Mat imageROI = Image(Rect((int)points2d[0].x, (int)points2d[0].y, logo.cols, logo.rows));
-    cv::addWeighted(imageROI, 1.0, logo, 0.7, 0, imageROI);
-    imwrite("imageROI.jpg", Image);
-
+    if(((int)points2d[0].x < Resolution::get().width()) || ((int)points2d[0].y < Resolution::get().height()))
+    {
+        cv::Mat imageROI = Image(Rect((int)points2d[0].x, (int)points2d[0].y, logo.cols, logo.rows));
+        cv::addWeighted(imageROI, 1.0, logo, 0.7, 0, imageROI);
+        imwrite("imageROI.jpg", Image);
+    }
     //传值
     lastRgbImage = rgbImage;
     printf("lastRgbImage:0x%x, strlen(lastRgbImage)=%d\n", lastRgbImage, strlen((char*)lastRgbImage));

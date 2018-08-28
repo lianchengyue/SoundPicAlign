@@ -42,9 +42,10 @@ class ProcessInterface : public ThreadObject
 
 
         ThreadMutexObject<bool> endRequested;
+        bool inline process(cv::Mat * Intrinsics);
 
     private:
-        bool inline process(cv::Mat * Intrinsics);
+//        bool inline process(cv::Mat * Intrinsics);
         bool calcRMatrix();
         bool calcTMatrix();
         bool calcCameraPose(/*Eigen::Matrix4f& pose*/);

@@ -163,9 +163,13 @@ uint64_t MainController::getMaxLag()
 
 void MainController::SnapShot()
 {
+#if 1
+    processInterface->process(Intrinsics);
+#else
     printf("SnapShot()\n");
     //grabNext
     int currentFrame = 0;
     bool returnVal = true;
     logRead->grabNext(returnVal, currentFrame);
+#endif
 }
