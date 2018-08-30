@@ -12,6 +12,8 @@
 #include "Resolution.h"
 
 #include "../utils/ThreadMutexObject.h"
+//相机与声纳初始化位姿信息
+#include "utils/utils.h"
 
 
 #include <boost/thread/mutex.hpp>

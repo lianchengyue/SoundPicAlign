@@ -8,7 +8,7 @@
 #include <Eigen/Core>
 
 #include "utils/ThreadObject.h"
-
+#include "utils/utils.h"
 
 class PangoVis : public ThreadObject
 {
@@ -88,6 +88,11 @@ class PangoVis : public ThreadObject
         pangolin::Var<bool> PreviewDisplay;
         pangolin::Var<std::string> SnapCount;
         pangolin::Var<std::string> frontendFps;
+        pangolin::Var<double> pointX;
+        pangolin::Var<double> pointY;
+        pangolin::Var<double> pointZ;
+        //pangolin::Var<int> intnum;
+
 
         pangolin::GlTexture rgbTex,
                             depthTex,
@@ -105,6 +110,7 @@ class PangoVis : public ThreadObject
         void drawBackground();
         void drawAxis();
         void drawSonaCamera();
+        void drawXYZPointAndLine(double x, double y, double z);
 };
 
 #endif //PANGOVIS_H_

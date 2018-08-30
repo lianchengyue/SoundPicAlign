@@ -9,7 +9,11 @@ PangoVis::PangoVis(cv::Mat * Intrinsics)
    SnapShot("ui.SnapShot", false, false),
    PreviewDisplay("ui.PreviewDisplay", false, true),
    SnapCount("ui.SnapCount:", "0"),
-   frontendFps("ui.Frontend:", "30fps")
+   frontendFps("ui.Frontend:", "30fps"),
+   pointX("ui.pointX", 1, -5, 5),
+   pointY("ui.pointY", CAMERA_POSTION_Y, -5, 5),
+   pointZ("ui.pointZ", 1, -5, 20)
+   //intnum("ui.An_Int",2,0,5)
 {
     printf("PangoVis,UI\n");
     pangolin::CreateWindowAndBind("FLQ", 1280 + 180, 960);
@@ -320,6 +324,7 @@ bool inline PangoVis::process()
     drawRoad();
     drawAxis();
     drawSonaCamera();
+    drawXYZPointAndLine(pointX, pointY, pointZ);
 
     processTsdf();
 
@@ -637,7 +642,6 @@ void PangoVis::processImages()
         imageLock.unlock();
     }
 
-///    rgbTex.Upload(rgbImg.ptr, GL_RGB, GL_UNSIGNED_BYTE);
     rgbTex.Upload(threadPack.tracker->lastRgbImage, GL_RGB, GL_UNSIGNED_BYTE);
 
 
@@ -725,7 +729,12 @@ void PangoVis::handleInput()
 {
     if(pangolin::Pushed(SnapShot))
     {
-        MainController::controller->SnapShot();
+        double pointx, pointy, pointz;
+        pointx = pointX;
+        pointy = pointY;
+        pointz = pointZ;
+        //drawXYZPointAndLine(pointx, pointy, pointz);
+        MainController::controller->SnapShot(pointx, pointy, pointz);
     }
 
     if(PreviewDisplay.GuiChanged())
@@ -940,13 +949,13 @@ void PangoVis::drawSonaCamera()
     glColor3f(1.0,1.0,1.0);
     //glVertex3f(0.0f,0.0f,0.0f);
     //glVertex3f(1,0,0);
-    glVertex3f(0,2,0);
+    glVertex3f(SONA_POSTION_X,SONA_POSTION_Y,SONA_POSTION_Z);
     glEnd();
 
     glPointSize(10.0f);
     glBegin(GL_POINTS);
     glColor3f(0.0f,1.0f,1.0f);
-    glVertex3f(0,2.2f,0);
+    glVertex3f(CAMERA_POSTION_X,CAMERA_POSTION_Y,CAMERA_POSTION_Z);
     glEnd();
 
 //added by flq
@@ -963,10 +972,27 @@ void PangoVis::drawSonaCamera()
 //    std::cout <<std::endl;
 
     glColor3f(1, 1, 1);
-    pangolin::glDrawFrustum(Kinv, Resolution::get().width(), Resolution::get().height(), origin, 0.1f);
+///    pangolin::glDrawFrustum(Kinv, Resolution::get().width(), Resolution::get().height(), origin, 0.1f);
     glColor3f(0, 1, 0);
     //绘制相机当前位姿态
     pangolin::glDrawFrustum(Kinv, Resolution::get().width(), Resolution::get().height(), pose, 0.1f);
     glColor3f(1, 1, 1);
 }
 
+void PangoVis::drawXYZPointAndLine(double x, double y, double z)
+{
+    glPointSize(10.0f);
+    glBegin(GL_POINTS);
+    glColor3f(1.0,1.0,1.0);
+    glVertex3f(x,y,z);
+    glEnd();
+
+
+    glBegin(GL_LINES);
+
+    glColor3f(1,0,0);
+    glVertex3f(CAMERA_POSTION_X, CAMERA_POSTION_Y, CAMERA_POSTION_Z);
+    glVertex3f(x,y,z);
+    glEnd();
+    glColor3f(1,1,1);
+}

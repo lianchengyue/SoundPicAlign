@@ -28,7 +28,7 @@ class MainController
         static MainController * controller;
 
         //Proxy functions for the GUI
-        void SnapShot();
+        void SnapShot(double, double, double);
         void complete();
 
         void save();

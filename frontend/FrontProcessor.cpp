@@ -13,6 +13,7 @@
 
 #include "FrontProcessor.h"
 
+
 //KintinuousTracker
 FrontProcessor::FrontProcessor(cv::Mat * Intrinsics)
  : tsdfAvailable(false),
@@ -55,13 +56,21 @@ void FrontProcessor::processFrame(unsigned char *rgbImage, vector<Point2f> point
 
     cv::Mat logo = imread("icon.jpg", 1);
     cvtColor(logo, logo, CV_RGB2BGR);//CV_RGB2GRAY
-
-    if(((int)points2d[0].x < Resolution::get().width()) || ((int)points2d[0].y < Resolution::get().height()))
+#if 0
+    if(((int)points2d[0].x < Resolution::get().width() - logo.cols/2)
+            && ((int)points2d[0].y < Resolution::get().height() - logo.rows/2)
+            && (int)points2d[0].x > 0
+            && (int)points2d[0].y > 0)
     {
         cv::Mat imageROI = Image(Rect((int)points2d[0].x, (int)points2d[0].y, logo.cols, logo.rows));
         cv::addWeighted(imageROI, 1.0, logo, 0.7, 0, imageROI);
         imwrite("imageROI.jpg", Image);
     }
+    else{
+        printf("\nERROR, OUT OF BOUND!!\n");
+        return;
+    }
+#endif
     //传值
     lastRgbImage = rgbImage;
     printf("lastRgbImage:0x%x, strlen(lastRgbImage)=%d\n", lastRgbImage, strlen((char*)lastRgbImage));
@@ -82,6 +91,16 @@ Mat FrontProcessor::eulerAnglesToRotationMatrix(Vec3f &theta)
     std::cout << R_x << std::endl;
 
 
+    int a = theta[0];
+    int b = theta[1];
+    int c = theta[2];
+    int k = sin((double)30);
+    int kk = sin(theta[1]);
+    int kkk = cos(theta[1]);
+
+    printf("theta[1]=%f\n\n", theta[1]);
+    printf("sin(theta[1])=%f\n\n", sin(theta[1]));
+    printf("cos(theta[1])=%f\n\n", cos(theta[1]));
     // 计算旋转矩阵的Y分量
     Mat R_y = (Mat_<double>(3,3) <<
                cos(theta[1]),    0,      sin(theta[1]),
@@ -109,9 +128,9 @@ Mat FrontProcessor::setTMatrix()
     //Mat T = (Mat_<double>(1,3) << 0.f, 0.f,1.f);
     Mat T = Mat_<double>(1,3);
 
-    T.at<double>(0, 0) = 0;
-    T.at<double>(0, 1) = 2.2f;
-    T.at<double>(0, 2) = 0;
+    T.at<double>(0, 0) = CAMERA_POSTION_X;
+    T.at<double>(0, 1) = CAMERA_POSTION_Y;
+    T.at<double>(0, 2) = CAMERA_POSTION_Z;
     //std::cout << "T:" << std::endl << T << std::endl;
 
     return T;

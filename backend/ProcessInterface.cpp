@@ -11,6 +11,11 @@ ProcessInterface::ProcessInterface(LogReader * logRead, cv::Mat * Intrinsics)
     frontend = new FrontProcessor(Intrinsics);
     reset();
 
+    //
+    euler_arc_X = 2*PI*CAMERA_EULER_X/360.f;
+    euler_arc_Y = 2*PI*CAMERA_EULER_Y/360.f;
+    euler_arc_Z = 2*PI*CAMERA_EULER_Z/360.f;
+
     calcRMatrix();
     calcTMatrix();
     calcCameraPose();
@@ -31,8 +36,88 @@ void ProcessInterface::reset()
     frontend->reset();
 }
 
-bool inline ProcessInterface::process(cv::Mat * Intrinsics)
+bool /*inline*/ ProcessInterface::process(cv::Mat * Intrinsics)
 {
+    printf("ProcessInterface::process()\n");
+
+    vector<Point2f> p2d;
+
+    if(firstRun)
+    {
+//        cudaSafeCall(cudaSetDevice(ConfigArgs::get().gpu));
+        firstRun = false;
+    }
+
+    if(!threadPack.pauseCapture.getValue())
+    {
+        TICK(threadIdentifier);
+
+        uint64_t start = Stopwatch::getCurrentSystemTime();
+
+        bool returnVal = true;
+
+        bool shouldEnd = endRequested.getValue();
+
+        if(!logRead->grabNext(returnVal, currentFrame)/* || shouldEnd*/)
+        {
+            threadPack.pauseCapture.assignValue(true);
+            threadPack.finalised.assignValue(true);
+
+//            finalise();
+
+//            while(!threadPack.cloudSliceProcessorFinished.getValueWait())
+//            {
+//                frontend->cloudSignal.notify_all();
+//            }
+
+            return shouldEnd ? false : returnVal;
+        }
+
+///        rgb24.data = (PixelRGB *)logRead->decompressedImage;
+
+        currentFrame++;
+
+///        rgb24.step = Resolution::get().width() * 3;
+///        rgb24.rows = Resolution::get().rows();
+///        rgb24.cols = Resolution::get().cols();
+
+///        colors_device.upload(rgb24.data, rgb24.step, rgb24.rows, rgb24.cols);
+
+        TICK("processFrame");
+/*
+        frontend->processFrame(logRead->decompressedImage,   //flq, rgbImage
+                               logRead->decompressedDepth,
+                               logRead->timestamp,
+                               logRead->isCompressed,
+                               logRead->compressedDepth,
+                               logRead->compressedDepthSize,
+                               logRead->compressedImage,
+                               logRead->compressedImageSize);
+*/
+        //定位到像素坐标系,p2d为输出
+        calc2DCoordinate(Intrinsics, p2d);
+
+        //加水印
+        frontend->processFrame(logRead->decompressedImage, p2d);
+        TOCK("processFrame");
+
+        uint64_t duration = Stopwatch::getCurrentSystemTime() - start;
+
+        if(threadPack.limit.getValue() && duration < 33333)
+        {
+            int sleepTime = std::max(int(33333 - duration), 0);
+            usleep(sleepTime);
+        }
+
+        TOCK(threadIdentifier);
+    }
+
+    return true;
+}
+
+bool /*inline*/ ProcessInterface::process(cv::Mat * Intrinsics, vector<Point3f> p3d)
+{
+#if 1
     printf("ProcessInterface::process()\n");
 
     vector<Point2f> p2d;
@@ -90,7 +175,7 @@ bool inline ProcessInterface::process(cv::Mat * Intrinsics)
                                logRead->compressedImageSize);
 */
         //定位到像素坐标系,p2d为输出
-        calc2DCoordinate(Intrinsics, p2d);
+        calc2DCoordinate(Intrinsics, p3d, p2d);
 
         //加水印
         frontend->processFrame(logRead->decompressedImage, p2d);
@@ -106,14 +191,14 @@ bool inline ProcessInterface::process(cv::Mat * Intrinsics)
 
         TOCK(threadIdentifier);
     }
-    
+#endif
     return true;
 }
 
 bool  ProcessInterface::calcRMatrix()
 {
     //相机的初始欧拉角度
-    Vec3f angle = Vec3f(0, 0, 0);
+    Vec3f angle = Vec3f(euler_arc_X, euler_arc_Y, euler_arc_Z);
     ThreadDataPack::get().RMatrix  = frontend->eulerAnglesToRotationMatrix(angle);
     std::cout<< "R:" << std::endl <<ThreadDataPack::get().RMatrix<<std::endl;
 
@@ -186,7 +271,7 @@ bool ProcessInterface::calcCameraPose(/*Eigen::Matrix4f& pose*/)
     ThreadDataPack::get().finalpose(1,3) = ThreadDataPack::get().TMatrix.at<double>(0, 1);
     ThreadDataPack::get().finalpose(2,3) = ThreadDataPack::get().TMatrix.at<double>(0, 2);
 
-    std::cout<< "test pose:" << ThreadDataPack::get().finalpose << std::endl;
+    std::cout<< std::endl << "test pose:" << std::endl << ThreadDataPack::get().finalpose << std::endl;
     return 0;
 }
 
@@ -203,7 +288,7 @@ bool ProcessInterface::calcCameraPose(/*Eigen::Matrix4f& pose*/)
  * jacobian – Optional output 2Nx(10+<numDistCoeffs>) jacobian matrix of derivatives of image points with respect to components of the rotation vector, translation vector, focal lengths, coordinates of the principal point and the distortion coefficients. In the old interface different components of the jacobian are returned via different output parameters.
  * aspectRatio – Optional “fixed aspect ratio” parameter. If the parameter is not 0, the function assumes that the aspect ratio (fx/fy) is fixed and correspondingly adjusts the jacobian matrix.
 */
-int ProcessInterface::calc2DCoordinate(cv::Mat* Intrinsics, vector<Point2f>& points2d)
+int ProcessInterface::calc2DCoordinate(cv::Mat* Intrinsics, vector<Point3f> points3d, vector<Point2f>& points2d)
 {
     //旋转向量
     Mat rvec;
@@ -229,7 +314,45 @@ int ProcessInterface::calc2DCoordinate(cv::Mat* Intrinsics, vector<Point2f>& poi
     */
 
     //世界坐标系中的一个点
-///    vector<Point2f> points2d;
+////    vector<Point2f> points2d;
+    //像素坐标系中的一个点
+////    vector<Point3f> points3d(1);
+
+//    points3d[0].x = 10.f;
+//    points3d[0].y = 10.f;
+//    points3d[0].z = 10.f;
+    //points3d[0] = Point3f((double)16.3f, (double)2.2f, (double)2.2f); //set x
+////    points3d[0] = Point3f((double)0.0f, (double)2.2f, (double)24.6f); //set x
+
+    projectPoints(Mat(points3d), rvec, ThreadDataPack::get().TMatrix, *Intrinsics/*cameraMatrix*/, distCoeff, points2d);
+
+    std::cout << "Final: calc2DCoordinate(), result:" << std::endl << points2d << std::endl;
+
+    return 0;
+}
+
+
+int ProcessInterface::calc2DCoordinate(cv::Mat* Intrinsics, vector<Point2f>& points2d)
+{
+    //旋转向量
+    Mat rvec;
+    //畸变系数
+    Mat distCoeff(1,5,CV_64F,Scalar(0));//CV_32FC1
+
+    //旋转矩阵转换为旋转向量process
+    Rodrigues(ThreadDataPack::get().RMatrix, rvec);
+
+#if 1
+    distCoeff.at<double>(0, 0) = -0.2756734608366758;
+    distCoeff.at<double>(0, 1) = -0.001303202285062331;
+    distCoeff.at<double>(0, 2) = 0.001005134230599892;
+    distCoeff.at<double>(0, 3) = -0.0008562559253269711;
+    distCoeff.at<double>(0, 4) = 0.2240573152028148;
+#else
+#endif
+
+    //世界坐标系中的一个点
+////    vector<Point2f> points2d;
     //像素坐标系中的一个点
     vector<Point3f> points3d(1);
 

@@ -161,10 +161,20 @@ uint64_t MainController::getMaxLag()
     return maxLag;
 }
 
-void MainController::SnapShot()
+void MainController::SnapShot(double px, double py, double pz)
 {
 #if 1
-    processInterface->process(Intrinsics);
+    //像素坐标系中的一个点
+    //vector<vector<Point3f>>  points3d(1);   //points3d[0]
+    vector<Point3f>  points3d(1);
+
+
+    points3d[0].x = px;
+    points3d[0].y = py;
+    points3d[0].z = pz;
+//    points3d[0] = Point3f((double)1.0f, (double)2.2f, (double)24.6f); //set x
+
+    processInterface->process(Intrinsics, points3d);
 #else
     printf("SnapShot()\n");
     //grabNext

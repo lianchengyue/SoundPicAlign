@@ -32,11 +32,14 @@ HEADERS += \
     utils/ThreadDataPack.h \
     utils/Stopwatch.h \
     backend/ProcessInterface.h \
-    frontend/FrontProcessor.h
+    frontend/FrontProcessor.h \
+    utils/utils.h
 
 INCLUDEPATH += \
 /usr/local/include/pangolin \
 /usr/local/opencv2.4.13/include \
+/usr/local/opencv2.4.13/include/opencv \
+/usr/local/opencv2.4.13/include/opencv2 \
 /usr/include/eigen3 \
 /usr/include/openni2 \
 /usr/include/eigen3 \
@@ -47,9 +50,9 @@ LIBS +=  \
 /usr/local/opencv2.4.13/lib/libopencv_*.so \
 /usr/lib/nvidia-390/libGL.so \
 /usr/lib/libboost_*.so \
-/home/montafan/software_download/CH_HCNetSDK_V5.3.5.2/lib/libhcnetsdk.so\
-/home/montafan/software_download/CH_HCNetSDK_V5.3.5.2/lib/libHCCore.so\
-/home/montafan/software_download/CH_HCNetSDK_V5.3.5.2/lib/libhpr.so\
-/home/montafan/software_download/CH_HCNetSDK_V5.3.5.2/lib/libPlayCtrl.so\
-#/home/montafan/software_download/CH_HCNetSDK_V5.3.5.2/lib/libSuperRender.so\
-#/home/montafan/software_download/CH_HCNetSDK_V5.3.5.2/lib/libAudioRender.so \
+#/home/montafan/software_download/CH_HCNetSDK_V5.3.5.2/lib/libhcnetsdk.so\
+#/home/montafan/software_download/CH_HCNetSDK_V5.3.5.2/lib/libHCCore.so\
+#/home/montafan/software_download/CH_HCNetSDK_V5.3.5.2/lib/libhpr.so\
+#/home/montafan/software_download/CH_HCNetSDK_V5.3.5.2/lib/libPlayCtrl.so\
+##/home/montafan/software_download/CH_HCNetSDK_V5.3.5.2/lib/libSuperRender.so\
+##/home/montafan/software_download/CH_HCNetSDK_V5.3.5.2/lib/libAudioRender.so \
