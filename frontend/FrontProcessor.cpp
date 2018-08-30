@@ -51,8 +51,8 @@ void FrontProcessor::processFrame(unsigned char *rgbImage, vector<Point2f> point
 {
     //定位到像素坐标系
     //后续需要根据相机的rotation做判断
-//    cv::Mat Image(Resolution::get().height(),Resolution::get().width(),CV_8UC3,cv::Scalar(255));
-//    Image.data =  rgbImage;
+    cv::Mat Image(Resolution::get().height(),Resolution::get().width(),CV_8UC3,cv::Scalar(255));
+    Image.data =  rgbImage;
 
     cv::Mat logo = imread("icon.jpg", 1);
     cvtColor(logo, logo, CV_RGB2BGR);//CV_RGB2GRAY
@@ -62,10 +62,6 @@ void FrontProcessor::processFrame(unsigned char *rgbImage, vector<Point2f> point
             && (int)points2d[0].x > 0
             && (int)points2d[0].y > 0)
     {
-        cv::Mat Image(Resolution::get().height(),Resolution::get().width(),CV_8UC3,cv::Scalar(255));
-        Image.data =  rgbImage;
-
-
         cv::Mat imageROI = Image(Rect((int)points2d[0].x, (int)points2d[0].y, logo.cols, logo.rows));
         cv::addWeighted(imageROI, 1.0, logo, 0.7, 0, imageROI);
         imwrite("imageROI.jpg", Image);

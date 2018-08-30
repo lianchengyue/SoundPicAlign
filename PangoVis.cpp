@@ -955,7 +955,7 @@ void PangoVis::drawSonaCamera()
     glPointSize(10.0f);
     glBegin(GL_POINTS);
     glColor3f(0.0f,1.0f,1.0f);
-    glVertex3f(CAMERA_POSTION_X,CAMERA_POSTION_Y,CAMERA_POSTION_Z);
+    glVertex3f(CAMERA_POSTION_X,-CAMERA_POSTION_Y,CAMERA_POSTION_Z);
     glEnd();
 
 //added by flq
@@ -991,7 +991,7 @@ void PangoVis::drawXYZPointAndLine(double x, double y, double z)
     glBegin(GL_LINES);
 
     glColor3f(1,0,0);
-    glVertex3f(CAMERA_POSTION_X, CAMERA_POSTION_Y, CAMERA_POSTION_Z);
+    glVertex3f(CAMERA_POSTION_X, -CAMERA_POSTION_Y, CAMERA_POSTION_Z);
     glVertex3f(x,y,z);
     glEnd();
     glColor3f(1,1,1);

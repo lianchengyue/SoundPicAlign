@@ -227,6 +227,7 @@ bool  ProcessInterface::calcTMatrix()
 
 bool ProcessInterface::calcCameraPose(/*Eigen::Matrix4f& pose*/)
 {
+#if 0
     //R
     ThreadDataPack::get().finalpose(0,0) = ThreadDataPack::get().RMatrix.at<double>(0, 0);
     ThreadDataPack::get().finalpose(0,1) = ThreadDataPack::get().RMatrix.at<double>(0, 1);
@@ -249,6 +250,30 @@ bool ProcessInterface::calcCameraPose(/*Eigen::Matrix4f& pose*/)
 
     std::cout<< std::endl << "test pose:" << std::endl << ThreadDataPack::get().finalpose << std::endl;
     return 0;
+#else
+    //R
+    ThreadDataPack::get().finalpose(0,0) = ThreadDataPack::get().RMatrix.at<double>(0, 0);
+    ThreadDataPack::get().finalpose(0,1) = ThreadDataPack::get().RMatrix.at<double>(0, 1);
+    ThreadDataPack::get().finalpose(0,2) = -ThreadDataPack::get().RMatrix.at<double>(0, 2);
+
+    ThreadDataPack::get().finalpose(1,0) = ThreadDataPack::get().RMatrix.at<double>(1, 0);
+    ThreadDataPack::get().finalpose(1,1) = ThreadDataPack::get().RMatrix.at<double>(1, 1);
+    ThreadDataPack::get().finalpose(1,2) = ThreadDataPack::get().RMatrix.at<double>(1, 2);
+
+    ThreadDataPack::get().finalpose(2,0) = -ThreadDataPack::get().RMatrix.at<double>(2, 0);
+    ThreadDataPack::get().finalpose(2,1) = ThreadDataPack::get().RMatrix.at<double>(2, 1);
+    ThreadDataPack::get().finalpose(2,2) = ThreadDataPack::get().RMatrix.at<double>(2, 2);
+
+    ThreadDataPack::get().finalpose(3,3) = 1;
+
+    //T
+    ThreadDataPack::get().finalpose(0,3) = ThreadDataPack::get().TMatrix.at<double>(0, 0);
+    ThreadDataPack::get().finalpose(1,3) = -ThreadDataPack::get().TMatrix.at<double>(0, 1);
+    ThreadDataPack::get().finalpose(2,3) = ThreadDataPack::get().TMatrix.at<double>(0, 2);
+
+    std::cout<< std::endl << "test pose:" << std::endl << ThreadDataPack::get().finalpose << std::endl;
+    return 0;
+#endif
 }
 
 //flq,3D坐标投影到2维图像
@@ -336,7 +361,7 @@ int ProcessInterface::calc2DCoordinate(cv::Mat* Intrinsics, vector<Point2f>& poi
 //    points3d[0].y = 10.f;
 //    points3d[0].z = 10.f;
     //points3d[0] = Point3f((double)16.3f, (double)2.2f, (double)2.2f); //set x
-    points3d[0] = Point3f((double)0.0f, (double)2.2f, (double)24.6f); //set x
+    points3d[0] = Point3f((double)CAMERA_POSTION_X, (double)-CAMERA_POSTION_Y, (double)CAMERA_POSTION_Z); //set x
 
     projectPoints(Mat(points3d), rvec, ThreadDataPack::get().TMatrix, *Intrinsics/*cameraMatrix*/, distCoeff, points2d);
 
