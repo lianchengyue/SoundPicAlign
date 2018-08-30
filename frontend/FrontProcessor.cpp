@@ -51,17 +51,21 @@ void FrontProcessor::processFrame(unsigned char *rgbImage, vector<Point2f> point
 {
     //定位到像素坐标系
     //后续需要根据相机的rotation做判断
-    cv::Mat Image(Resolution::get().height(),Resolution::get().width(),CV_8UC3,cv::Scalar(255));
-    Image.data =  rgbImage;
+//    cv::Mat Image(Resolution::get().height(),Resolution::get().width(),CV_8UC3,cv::Scalar(255));
+//    Image.data =  rgbImage;
 
     cv::Mat logo = imread("icon.jpg", 1);
     cvtColor(logo, logo, CV_RGB2BGR);//CV_RGB2GRAY
-#if 0
+#if 1
     if(((int)points2d[0].x < Resolution::get().width() - logo.cols/2)
             && ((int)points2d[0].y < Resolution::get().height() - logo.rows/2)
             && (int)points2d[0].x > 0
             && (int)points2d[0].y > 0)
     {
+        cv::Mat Image(Resolution::get().height(),Resolution::get().width(),CV_8UC3,cv::Scalar(255));
+        Image.data =  rgbImage;
+
+
         cv::Mat imageROI = Image(Rect((int)points2d[0].x, (int)points2d[0].y, logo.cols, logo.rows));
         cv::addWeighted(imageROI, 1.0, logo, 0.7, 0, imageROI);
         imwrite("imageROI.jpg", Image);
@@ -90,17 +94,6 @@ Mat FrontProcessor::eulerAnglesToRotationMatrix(Vec3f &theta)
                );
     std::cout << R_x << std::endl;
 
-
-    int a = theta[0];
-    int b = theta[1];
-    int c = theta[2];
-    int k = sin((double)30);
-    int kk = sin(theta[1]);
-    int kkk = cos(theta[1]);
-
-    printf("theta[1]=%f\n\n", theta[1]);
-    printf("sin(theta[1])=%f\n\n", sin(theta[1]));
-    printf("cos(theta[1])=%f\n\n", cos(theta[1]));
     // 计算旋转矩阵的Y分量
     Mat R_y = (Mat_<double>(3,3) <<
                cos(theta[1]),    0,      sin(theta[1]),

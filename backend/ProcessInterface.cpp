@@ -20,8 +20,6 @@ ProcessInterface::ProcessInterface(LogReader * logRead, cv::Mat * Intrinsics)
     calcTMatrix();
     calcCameraPose();
 
-///    calc2DCoordinate(Intrinsics);
-
     process(Intrinsics); //flq.temp
 }
 
@@ -229,28 +227,6 @@ bool  ProcessInterface::calcTMatrix()
 
 bool ProcessInterface::calcCameraPose(/*Eigen::Matrix4f& pose*/)
 {
-#if 0
-    ThreadDataPack::get().finalpose(0,0) = 1;
-    ThreadDataPack::get().finalpose(0,1) = 0;
-    ThreadDataPack::get().finalpose(0,2) = 0;
-    ThreadDataPack::get().finalpose(0,3) = 0;//-6.9917633511038035e+00;
-
-    ThreadDataPack::get().finalpose(1,0) = 0;
-    ThreadDataPack::get().finalpose(1,1) = 1;
-    ThreadDataPack::get().finalpose(1,2) = 0;
-    ThreadDataPack::get().finalpose(1,3) = 2.2f;//2.5151918580111243e-01;
-
-    ThreadDataPack::get().finalpose(2,0) = 0;
-    ThreadDataPack::get().finalpose(2,1) = 0;
-    ThreadDataPack::get().finalpose(2,2) = 1;
-    ThreadDataPack::get().finalpose(2,3) = 0;//8.6742681541653210e-02;
-
-    ThreadDataPack::get().finalpose(3,0) = 0;
-    ThreadDataPack::get().finalpose(3,1) = 0;
-    ThreadDataPack::get().finalpose(3,2) = 0;
-    ThreadDataPack::get().finalpose(3,3) = 1;
-    std::cout<< "test pose:" << ThreadDataPack::get().finalpose << std::endl;
-#endif
     //R
     ThreadDataPack::get().finalpose(0,0) = ThreadDataPack::get().RMatrix.at<double>(0, 0);
     ThreadDataPack::get().finalpose(0,1) = ThreadDataPack::get().RMatrix.at<double>(0, 1);
@@ -339,7 +315,7 @@ int ProcessInterface::calc2DCoordinate(cv::Mat* Intrinsics, vector<Point2f>& poi
     //畸变系数
     Mat distCoeff(1,5,CV_64F,Scalar(0));//CV_32FC1
 
-    //旋转矩阵转换为旋转向量process
+    //旋转矩阵转换为旋转向量
     Rodrigues(ThreadDataPack::get().RMatrix, rvec);
 
 #if 1

@@ -11,7 +11,7 @@ PangoVis::PangoVis(cv::Mat * Intrinsics)
    SnapCount("ui.SnapCount:", "0"),
    frontendFps("ui.Frontend:", "30fps"),
    pointX("ui.pointX", 1, -5, 5),
-   pointY("ui.pointY", CAMERA_POSTION_Y, -5, 5),
+   pointY("ui.pointY", /*CAMERA_POSTION_Y*/2.2f, -5, 5),
    pointZ("ui.pointZ", 1, -5, 20)
    //intnum("ui.An_Int",2,0,5)
 {

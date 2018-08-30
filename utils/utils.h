@@ -5,7 +5,7 @@
 #define PI 3.141592f
 
 #define CAMERA_POSTION_X 0
-#define CAMERA_POSTION_Y 2.2f
+#define CAMERA_POSTION_Y -2.2f   //2.2f
 #define CAMERA_POSTION_Z 0
 
 #define CAMERA_EULER_X 0
