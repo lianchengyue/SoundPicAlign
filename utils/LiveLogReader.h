@@ -9,7 +9,12 @@
 #include <boost/filesystem.hpp>
 
 #include "LogReader.h"
+//#ifdef HIKVISION_GRAB_FUNC
+#include "utils/HikGrab.h"
+//#else
 #include "utils/usbGrab.h"
+//#endif
+#include "utils/Macros.h"
 //#include "OpenNI2Interface.h"
 
 class LiveLogReader : public LogReader
@@ -21,8 +26,11 @@ class LiveLogReader : public LogReader
         bool grabNext(bool & returnVal, int & currentFrame);
 
     private:
-//        OpenNI2Interface * asus;
+#ifdef HIKVISION_GRAB_FUNC
+        HikGrab *m_hikgrab;
+#else
         usbGrab *m_usbgrab;
+#endif
         int64_t lastFrameTime;
         int lastGot;
 };

@@ -24,8 +24,6 @@ usbGrab::~usbGrab()
 
 int usbGrab::grab()
 {
-//    int width = INPUT_WIDTH;
-//    int height = INPUT_HEIGHT;
     int width = Resolution::get().width();
     int height = Resolution::get().height();
 

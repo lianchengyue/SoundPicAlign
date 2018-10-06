@@ -16,4 +16,7 @@
 #define SONA_POSTION_Y 2.0f
 #define SONA_POSTION_Z 0
 
+#define RESOLUTION_WIDTH 1920
+#define RESOLUTION_HEIGHT 1080
+
 #endif // UTILS_H

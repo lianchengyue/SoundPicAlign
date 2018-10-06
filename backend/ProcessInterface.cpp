@@ -34,9 +34,44 @@ void ProcessInterface::reset()
     frontend->reset();
 }
 
-bool /*inline*/ ProcessInterface::process(cv::Mat * Intrinsics)
+bool /*inline*/ ProcessInterface::process()
 {
-    printf("ProcessInterface::process()\n");
+//    printf("ProcessInterface::process() start!\n");
+    if(firstRun)
+    {
+        firstRun = false;
+    }
+
+    if(!threadPack.pauseCapture.getValue())
+    {
+        TICK(threadIdentifier);
+
+        uint64_t start = Stopwatch::getCurrentSystemTime();
+
+        bool returnVal = true;
+
+        bool shouldEnd = endRequested.getValue();
+
+        if(!logRead->grabNext(returnVal, currentFrame) || shouldEnd)
+        {
+//            threadPack.pauseCapture.assignValue(true);
+//            threadPack.finalised.assignValue(true);
+
+//            finalise();
+
+            return shouldEnd ? false : returnVal;
+        }
+        currentFrame++;
+
+        TOCK(threadIdentifier);
+    }
+
+    return true;
+}
+
+bool /*inline*/ ProcessInterface::process(cv::Mat* Intrinsics)
+{
+    printf("ProcessInterface::process(cv::Mat *)\n");
 
     vector<Point2f> p2d;
 
@@ -73,7 +108,7 @@ bool /*inline*/ ProcessInterface::process(cv::Mat * Intrinsics)
 
 ///        rgb24.data = (PixelRGB *)logRead->decompressedImage;
 
-        currentFrame++;
+//////        currentFrame++;
 
 ///        rgb24.step = Resolution::get().width() * 3;
 ///        rgb24.rows = Resolution::get().rows();
@@ -153,7 +188,7 @@ bool /*inline*/ ProcessInterface::process(cv::Mat * Intrinsics, vector<Point3f> 
 
 ///        rgb24.data = (PixelRGB *)logRead->decompressedImage;
         
-        currentFrame++;
+/////////        currentFrame++;
 
 ///        rgb24.step = Resolution::get().width() * 3;
 ///        rgb24.rows = Resolution::get().rows();

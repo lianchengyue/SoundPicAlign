@@ -6,7 +6,7 @@
 PangoVis::PangoVis(cv::Mat * Intrinsics)
  : ThreadObject("VisualisationThread"),
    numTriangles(0),
-   SnapShot("ui.SnapShot", false, false),
+   SnapShotBtn("ui.SnapShot", false, false),
    PreviewDisplay("ui.PreviewDisplay", false, true),
    SnapCount("ui.SnapCount:", "0"),
    frontendFps("ui.Frontend:", "30fps"),
@@ -24,21 +24,28 @@ PangoVis::PangoVis(cv::Mat * Intrinsics)
     rgbTex.Reinitialise(Resolution::get().width(), Resolution::get().height());
     rgbImg.Reinitialise(Resolution::get().width(), Resolution::get().height());
 
+    rgbVideoTex.Reinitialise(Resolution::get().width(), Resolution::get().height());
+    rgbVideo.Reinitialise(Resolution::get().width(), Resolution::get().height());
+
     glEnable(GL_DEPTH_TEST);
 
     s_cam = pangolin::OpenGlRenderState(pangolin::ProjectionMatrix(640, 480, 420, 420, 320, 240, 0.1, 1000),
-                                        pangolin::ModelViewLookAt(-0.35, -2.3, -6.4, 0, 0, 0, 0, -1, 0));
+                                        //pangolin::ModelViewLookAt(-0.35, -2.3, -6.4, 0, 0, 0, 0, -1, 0));
+                                        pangolin::ModelViewLookAt(0, 0, -6.4, 0, 0, 0, 0, -1, 0));
                                         //pangolin::ModelViewLookAt(1, 1, 1, 0, 0, 0, 0, pangolin::AxisY, 0));
 
     pangolin::Display("cam").SetBounds(0, 1.0f, 0, 1.0f, -640 / 480.0)
                             .SetHandler(new pangolin::Handler3D(s_cam));
 
     pangolin::Display("Img").SetAspect(640.0f / 480.0f);
+    pangolin::Display("Video").SetAspect(640.0f / 480.0f);
+
     pangolin::CreatePanel("ui").SetBounds(0.0, 1.0, 0.0, pangolin::Attach::Pix(180));
 
     pangolin::Display("multi").SetBounds(pangolin::Attach::Pix(0), 1 / 4.0f, pangolin::Attach::Pix(180), 1.0)
                               .SetLayout(pangolin::LayoutEqualHorizontal)
-                              .AddDisplay(pangolin::Display("Img"));
+                              .AddDisplay(pangolin::Display("Img"))
+                              .AddDisplay(pangolin::Display("Video"));
 
     K = Eigen::Matrix3f::Identity();
     K(0, 0) = Intrinsics->at<double>(0,0);
@@ -52,190 +59,12 @@ PangoVis::PangoVis(cv::Mat * Intrinsics)
 
     //calcRMatrix();
 //    threadPack.tracker->lastRgbImage
-    while(1)
-        process();
+
+    //不再需要在主线程中循环，在Pangovis线程中循环,start
+///    while(1)
+///        process();
+    //不再需要在主线程中循环，在Pangovis线程中循环,end
 }
-
-#if 0
-PangoVis::PangoVis()
-{
-#if 0
-    pangolin::CreateWindowAndBind("Kintinuous", 1280 + 180, 960);
-
-    glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
-    glPixelStorei(GL_PACK_ALIGNMENT, 1);
-
-    glEnable(GL_DEPTH_TEST);
-
-    s_cam = pangolin::OpenGlRenderState(pangolin::ProjectionMatrix(640, 480, 420, 420, 320, 240, 0.1, 1000),
-                                        pangolin::ModelViewLookAt(-0.35, -2.3, -6.4, 0, 0, 0, 0, -1, 0));
-
-    pangolin::Display("cam").SetBounds(0, 1.0f, 0, 1.0f, -640 / 480.0)
-                            .SetHandler(new pangolin::Handler3D(s_cam));
-
-    pangolin::Display("Img").SetAspect(640.0f / 480.0f);
-    pangolin::Display("Depth").SetAspect(640.0f / 480.0f);
-    pangolin::Display("ModelImg").SetAspect(640.0f / 480.0f);
-    pangolin::Display("Model").SetAspect(640.0f / 480.0f);
-
-    pangolin::CreatePanel("ui").SetBounds(0.0, 1.0, 0.0, pangolin::Attach::Pix(180));
-
-    pangolin::Display("multi").SetBounds(pangolin::Attach::Pix(0), 1 / 4.0f, pangolin::Attach::Pix(180), 1.0)
-                              .SetLayout(pangolin::LayoutEqualHorizontal)
-                              .AddDisplay(pangolin::Display("Img"))
-                              .AddDisplay(pangolin::Display("Depth"))
-                              .AddDisplay(pangolin::Display("ModelImg"))
-                              .AddDisplay(pangolin::Display("Model"));
-
-
-
-    reset();
-#endif
-    //process();
-
-    //创建一个窗口
-    pangolin::CreateWindowAndBind("FLQ",1280 + 180, 960);
-    rgbTex.Reinitialise(Resolution::get().width(), Resolution::get().height()),
-    printf("%d,\n",Resolution::get().width());
-
-    //启动深度测试
-    glEnable(GL_DEPTH_TEST);
-
-    // Define Projection and initial ModelView matrix
-    pangolin::OpenGlRenderState s_cam(
-            pangolin::ProjectionMatrix(640,480,420,420,320,240,0.2,100),
-            //对应的是gluLookAt,摄像机位置,参考点位置,up vector(上向量)
-            pangolin::ModelViewLookAt(0,-10,0.1,0,0,0,pangolin::AxisNegY)
-            //pangolin::ProjectionMatrix(640, 480, 420, 420, 320, 240, 0.1, 1000),
-            //pangolin::ModelViewLookAt(-0.35, -2.3, -6.4, 0, 0, 0, 0, -1, 0)
-    );
-
-    // Create Interactive View in window
-    pangolin::Handler3D handler(s_cam);
-    //setBounds 跟opengl的viewport 有关
-    //看SimpleDisplay中边界的设置就知道
-    pangolin::View &d_cam = pangolin::CreateDisplay().SetBounds(0.0,1.0,0.0,1.0,-640.0f/480.0f)
-                            .SetHandler(&handler);
-
-    //added by flq
-    const int UI_WIDTH = 180;
-    pangolin::CreatePanel("ui")
-        .SetBounds(0.0, 1.0, 0.0, pangolin::Attach::Pix(UI_WIDTH));
-    pangolin::Var<bool> a_button("ui.A_Button",false,false);
-    pangolin::Var<double> a_double("ui.A_Double",3,0,5);
-    pangolin::Var<int> an_int("ui.An_Int",2,0,5);
-    pangolin::Var<double> a_double_log("ui.Log_scale var",3,1,1E4, true);
-    pangolin::Var<bool> a_checkbox("ui.A_Checkbox",false,true);
-    pangolin::Var<int> an_int_no_input("ui.An_Int_No_Input",2);
-    //pangolin::Var<CustomType> any_type("ui.Some_Type", CustomType(0,1.2f,"Hello") );
-
-    pangolin::Var<bool> save_window("ui.Save_Window",false,false);
-    pangolin::Var<bool> save_cube("ui.Save_Cube",false,false);
-
-    pangolin::Var<bool> record_cube("ui.Record_Cube",false,false);
-
-    // std::function objects can be used for Var's too. These work great with C++11 closures.
-    //pangolin::Var<std::function<void(void)> > reset("ui.Reset", SampleMethod);
-
-    // Demonstration of how we can register a keyboard hook to alter a Var
-    pangolin::RegisterKeyPressCallback(pangolin::PANGO_CTRL + 'b', pangolin::SetVarFunctor<double>("ui.A_Double", 3.5));
-
-    // Demonstration of how we can register a keyboard hook to trigger a method
-    //pangolin::RegisterKeyPressCallback(pangolin::PANGO_CTRL + 'r', SampleMethod);
-
-    while(!pangolin::ShouldQuit())
-    {
-        // Clear screen and activate view to render into
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-        d_cam.Activate(s_cam);
-
-        // Render OpenGL Cube
-//        pangolin::glDrawColouredCube();\
-        //坐标轴的创建
-#if 0
-        //pangolin::glDrawAxis(3);
-#else
-        //draw the axes, to give a sense of orientation//GLRenderer.cpp
-        double axis = 5;
-        glBegin(GL_LINES);
-
-        glColor3f(1,0,0);
-        glVertex3f(0,0,0);
-        glVertex3f(axis,0,0);
-//        GLPrint("X");
-
-        glColor3f(0,1,0);
-        glVertex3f(0,0,0);
-        glVertex3f(0,axis,0);
-
-        glColor3f(0,0,1);
-        glVertex3f(0,0,0);
-        glVertex3f(0,0,axis);
-
-        glEnd();
-#endif
-        //点的创建
-        glPointSize(10.0f);
-        glBegin(GL_POINTS);
-        glColor3f(1.0,1.0,1.0);
-        //glVertex3f(0.0f,0.0f,0.0f);
-        //glVertex3f(1,0,0);
-        glVertex3f(0,2,0);
-        glEnd();
-
-        glPointSize(10.0f);
-        glBegin(GL_POINTS);
-        glColor3f(0.0f,1.0f,1.0f);
-        glVertex3f(0,2.2f,0);
-        glEnd();
-
-//GLPrint("Y");
-        //flq
-        drawBackground();
-
-        drawRoad();
-//        constGLubyte* OpenGLVersion  = glGetString(GL_VERSION);//返回当前OpenGL实现的版本号
-/*
-        //把下面的点都做一次旋转变换
-        glPushMatrix();
-        //col major
-        std::vector<GLfloat > Twc = {1,0,0,0, 0,1,0,0 , 0,0,1,0 ,0,0,5,1};
-        glMultMatrixf(Twc.data());
-
-        //直线的创建
-        const float w = 2;
-        const float h = w*0.75;
-        const float z = w*0.6;
-        glLineWidth(2);
-        glColor3f(1.0,0,0);
-        glBegin(GL_LINES);
-
-        glVertex3f(0,0,0);
-        glVertex3f(w,h,z);
-        glVertex3f(0,0,0);
-        glVertex3f(w,-h,z);
-        glVertex3f(0,0,0);
-        glVertex3f(-w,-h,z);
-        glVertex3f(0,0,0);
-        glVertex3f(-w,h,z);
-        glVertex3f(w,h,z);
-        glVertex3f(-w,h,z);
-        glVertex3f(-w,h,z);
-        glVertex3f(-w,-h,z);
-        glVertex3f(-w,-h,z);
-        glVertex3f(w,-h,z);
-        glVertex3f(w,-h,z);
-        glVertex3f(w,h,z);
-        glEnd();
-
-        glPopMatrix();
-*/
-        // Swap frames and Process Events
-        pangolin::FinishFrame();
-    }
-
-}
-#endif
 
 PangoVis::~PangoVis()
 {
@@ -311,6 +140,7 @@ bool inline PangoVis::process()
 {
     TICK(threadIdentifier);
 
+///    printf("PangoVisThread start!\n");
     if(pangolin::ShouldQuit())
     {
         //MainController::controller->shutdown();
@@ -560,6 +390,9 @@ void PangoVis::render()
     pangolin::Display("Img").Activate();
     rgbTex.RenderToViewport(true);
 
+    pangolin::Display("Video").Activate();
+    rgbVideoTex.RenderToViewport(true);
+
     glEnable(GL_DEPTH_TEST);
 
 #if 0
@@ -643,6 +476,7 @@ void PangoVis::processImages()
     }
 
     rgbTex.Upload(threadPack.tracker->lastRgbImage, GL_RGB, GL_UNSIGNED_BYTE);
+    rgbVideoTex.Upload(threadPack.tracker->lastRgbImage, GL_RGB, GL_UNSIGNED_BYTE);
 
 
 
@@ -727,7 +561,7 @@ void PangoVis::processImages()
 
 void PangoVis::handleInput()
 {
-    if(pangolin::Pushed(SnapShot))
+    if(pangolin::Pushed(SnapShotBtn))
     {
         double pointx, pointy, pointz;
         pointx = pointX;
@@ -843,20 +677,6 @@ void PangoVis::handleInput()
     std::stringstream strst;
     strst << numTriangles;
     totalTriangles = strst.str();
-/*
-    std::stringstream strsf;
-    strsf << int(std::ceil(1.0f / (Stopwatch::get().getTimings().at("TrackerInterfaceThread") / 1000.0f))) << "Hz";
-    frontendFps = strsf.str();
-
-    std::stringstream strsb;
-    strsb << int(float(MainController::controller->getMaxLag()) / 1000.0f) << "ms";
-    backendLag = strsb.str();
-
-    std::stringstream strsfr;
-    strsfr << threadPack.trackerFrame.getValue();
-    frame = strsfr.str();
-
-*/
 #endif
 }
 

@@ -54,6 +54,10 @@ class MainController
         PangoVis * pangoVis;
         LiveLogReader * liveRead;
         LogReader * logRead;
+
+        //flq, start All thread
+        boost::thread_group threads;
+        std::vector<ThreadObject *> systemComponents;
 };
 
 #endif //MAINCONTROLLER_H

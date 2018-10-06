@@ -44,6 +44,7 @@ class ProcessInterface : public ThreadObject
         ThreadMutexObject<bool> endRequested;
         bool /*inline*/ process(cv::Mat * Intrinsics, vector<Point3f> p3d);
         bool /*inline*/ process(cv::Mat * Intrinsics);
+        bool process();
 
     private:
 //        bool inline process(cv::Mat * Intrinsics);

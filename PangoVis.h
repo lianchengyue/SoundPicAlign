@@ -84,7 +84,7 @@ class PangoVis : public ThreadObject
         pangolin::Var<std::string> backendLag;
         pangolin::Var<std::string> status;
 */
-        pangolin::Var<bool> SnapShot;
+        pangolin::Var<bool> SnapShotBtn;
         pangolin::Var<bool> PreviewDisplay;
         pangolin::Var<std::string> SnapCount;
         pangolin::Var<std::string> frontendFps;
@@ -99,7 +99,10 @@ class PangoVis : public ThreadObject
                             tsdfRgbTex,
                             tsdfTex;
 
+        pangolin::GlTexture rgbVideoTex;
+
         pangolin::ManagedImage<unsigned char> rgbImg;
+        pangolin::ManagedImage<unsigned char> rgbVideo;
 //        pangolin::ManagedImage<uchar3> tsdfImg;
 //        pangolin::ManagedImage<uchar3> tsdfImgColor;
 //        pangolin::ManagedImage<uchar3> depthImg;

@@ -10,7 +10,8 @@ MainController * MainController::controller = 0;
 
 MainController::MainController(int argc, char * argv[])
  : Intrinsics(0),
-   pangoVis(0)
+   pangoVis(0),
+   processInterface(0)
    /*,
    trackerInterface(0),
    meshGenerator(0),
@@ -21,8 +22,6 @@ MainController::MainController(int argc, char * argv[])
    liveRead(0),
    logRead(0)*/
 {
-//    ConfigArgs::get(argc, argv);
-
     assert(!MainController::controller);
 
     MainController::controller = this;
@@ -53,11 +52,14 @@ bool MainController::setup()
     loadCalibration();
 
     liveRead = new LiveLogReader();
-    //pangoVis = new PangoVis(Intrinsics);
     logRead = static_cast<LogReader *>(liveRead);
+
+    ThreadDataPack::get();
 
     processInterface = new ProcessInterface(logRead, Intrinsics);
 
+    //添加ProcessInterface线程
+    systemComponents.push_back(processInterface);
     ThreadDataPack::get().assignFrontend(processInterface->getFrontend());
 
     pangoVis = new PangoVis(Intrinsics);
@@ -72,16 +74,27 @@ int MainController::mainLoop()
     gettimeofday(&start, 0);
     uint64_t beginning = start.tv_sec * 1000000 + start.tv_usec;
 
-    if(pangoVis)
+    //flq,import, start All Threads
+    for(unsigned int i = 0; i < systemComponents.size(); i++)
     {
-//        pangoVis->start();
+        threads.add_thread(new boost::thread(boost::bind(&ThreadObject::start, systemComponents.at(i))));
     }
 
-    //threads.join_all();
+    if(pangoVis)
+    {
+        pangoVis->start();
+    }
+
+    threads.join_all();
+
+    for(unsigned int i = 0; i < systemComponents.size(); i++)
+    {
+        delete systemComponents.at(i);
+    }
 
     if(pangoVis)
     {
-//        pangoVis->stop();
+        pangoVis->stop();
         delete pangoVis;
     }
 
@@ -112,7 +125,7 @@ void MainController::loadCalibration()
     distCoeff->at<double>(0, 3) = -0.0008562559253269711;
     distCoeff->at<double>(0, 4) = 0.2240573152028148;
 
-    Resolution::get(640, 480);
+    Resolution::get(RESOLUTION_WIDTH, RESOLUTION_HEIGHT);
     std::cout << "loadCalibration(), Intrinsics:" << std::endl << Intrinsics << std::endl;
     std::cout << "loadCalibration(), distCoeff:" << std::endl << distCoeff << std::endl;
 }
@@ -145,7 +158,7 @@ void MainController::shutdown()
 
     if(pangoVis)
     {
-//        pangoVis->stop();
+        pangoVis->stop();
     }
 }
 

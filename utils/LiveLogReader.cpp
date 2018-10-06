@@ -5,7 +5,9 @@ LiveLogReader::LiveLogReader()
    lastGot(-1)
 {
     printf("LiveLogReader\n");
-#if 1//defined USB_GRAB_FUNC
+#ifdef HIKVISION_GRAB_FUNC
+    m_hikgrab = new HikGrab();
+#else
     m_usbgrab = new usbGrab();
     //m_usbgrab->grab();
     //imwrite("../SoundPicAlign/1.jpg", *m_usbgrab->getCurrentFrame());
@@ -57,6 +59,14 @@ LiveLogReader::~LiveLogReader()
 
 bool LiveLogReader::grabNext(bool & returnVal, int & currentFrame)
 {
+#ifdef HIKVISION_GRAB_FUNC
+    int bufferIndex = m_hikgrab->getFrameIdx() % 10;
+
+    deCompImage = m_hikgrab->getCurrentFrame();
+
+    decompressedImage = (unsigned char *)deCompImage->data;
+    printf("decompressedImage:0x%x, strlen(decompressedImage)=%d\n", decompressedImage, strlen((char*)decompressedImage));
+#else
     int bufferIndex = m_usbgrab->getFrameIdx() % 10;
 
 //    memcpy(m_usbgrab->frameBuffers[0], deCompImage->data, Resolution::get().numPixels() * 3);
@@ -64,6 +74,7 @@ bool LiveLogReader::grabNext(bool & returnVal, int & currentFrame)
 
     decompressedImage = (unsigned char *)deCompImage->data;
     printf("decompressedImage:0x%x, strlen(decompressedImage)=%d\n", decompressedImage, strlen((char*)decompressedImage));
+#endif
 
 #if 0
     int lastDepth = asus->latestDepthIndex.getValue();
