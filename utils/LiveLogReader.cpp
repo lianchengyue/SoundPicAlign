@@ -73,7 +73,7 @@ bool LiveLogReader::grabTrigerdNext(bool& returnVal/*, int& frame_idx*/)
 #ifdef HIKVISION_GRAB_FUNC
     int bufferIndex = m_hikgrab->getFrameIdx() % 10;
 
-    deCompImage = m_hikgrab->getCurrentFrame(); //can delete
+///    deCompImage = m_hikgrab->getCurrentFrame(); //can delete
     memcpy(&TrigerSavedBuffer[0], m_hikgrab->frameBuffers[bufferIndex], Resolution::get().numPixels() * 3);
 
     TrigerSavedImage = (unsigned char*)&TrigerSavedBuffer[0];//TrigerSavedImage 会显示到rgbVideo

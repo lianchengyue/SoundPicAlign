@@ -1,6 +1,7 @@
 #ifndef MACROS_H
 #define MACROS_H
 
+
 #ifndef WATERMARK_FUNC
 #define WATERMARK_FUNC
 #endif

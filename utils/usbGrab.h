@@ -31,8 +31,9 @@ private:
     struct timeval mPreviewStartTime;
     struct timeval mPreviewStopTime;
 
-
     int viewer_status;
+
+//    VideoCapture capture;
 };
 
 #endif // USBGRAB_H

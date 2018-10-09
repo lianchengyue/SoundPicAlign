@@ -10,6 +10,8 @@
 using namespace cv;
 using namespace std;
 
+VideoCapture capture(0);
+
 usbGrab::usbGrab()
 {
     mFPSCount = 0;
@@ -20,6 +22,15 @@ usbGrab::usbGrab()
         unsigned char* newImage = (unsigned char *)calloc(RESOLUTION_WIDTH * RESOLUTION_HEIGHT * 3, sizeof(unsigned char));
         frameBuffers[i] = newImage;
     }
+
+    //相机初始化
+    int width = Resolution::get().width();
+    int height = Resolution::get().height();
+//    VideoCapture capture(0);
+    //设置图片的大小
+    capture.set(CV_CAP_PROP_FRAME_WIDTH, width);//1280 INPUT_WIDTH
+    capture.set(CV_CAP_PROP_FRAME_HEIGHT, height);//960 INPUT_HEIGHT
+
 }
 
 usbGrab::~usbGrab()
@@ -83,15 +94,17 @@ cv::Mat* usbGrab::getCurrentFrame()
     int width = Resolution::get().width();
     int height = Resolution::get().height();
 
+    ///*
     if(1 == viewer_status) //0:off 1:on
     {
         namedWindow("usb camera",WINDOW_AUTOSIZE);
     }
+    //*/
 
-    VideoCapture capture(0);
+//    VideoCapture capture(0);
     //设置图片的大小
-    capture.set(CV_CAP_PROP_FRAME_WIDTH, width);//1280 INPUT_WIDTH
-    capture.set(CV_CAP_PROP_FRAME_HEIGHT, height);//960 INPUT_HEIGHT
+//    capture.set(CV_CAP_PROP_FRAME_WIDTH, width);//1280 INPUT_WIDTH
+//    capture.set(CV_CAP_PROP_FRAME_HEIGHT, height);//960 INPUT_HEIGHT
 
     capture >> CurrentFrame;
 
@@ -103,6 +116,7 @@ cv::Mat* usbGrab::getCurrentFrame()
 
     //使反色正常
     cvtColor(CurrentFrame, CurrentFrame, CV_RGB2BGR);
+    //imshow("1", CurrentFrame);
     //imwrite("tt.jpg", CurrentFrame);
 
     //test
