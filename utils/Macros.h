@@ -1,6 +1,10 @@
 #ifndef MACROS_H
 #define MACROS_H
 
+#ifndef WATERMARK_FUNC
+#define WATERMARK_FUNC
+#endif
+
 //选择相机类型BASLER
 #ifndef BASLER_GRAB_FUNC
 //#define BASLER_GRAB_FUNC

@@ -111,10 +111,11 @@ void PangoVis::reset()
     numTrianglePoints = 0;
     latestDrawnPoseCloudId = 0;
 
+/*
     removeAllClouds();
     removeAllShapes();
     removeAllMeshes();
-/*
+
     if(liveTSDF)
     {
         delete liveTSDF;
@@ -172,215 +173,25 @@ bool inline PangoVis::process()
 
     TOCK(threadIdentifier);
 
-    usleep(std::max(1, int(33000 - (Stopwatch::get().getTimings().at(threadIdentifier) * 1000))));
+    //flq, delete temp
+///    usleep(std::max(1, int(33000 - (Stopwatch::get().getTimings().at(threadIdentifier) * 1000))));
 
     return true;
 }
 
 void PangoVis::processClouds()
 {
-#if 0
-    int latestDensePoseIdCopy = threadPack.tracker->latestDensePoseId.getValue();
-
-    if(latestDensePoseIdCopy > 0)
-    {
-        const float3 & voxelSizeMeters = Volume::get().getVoxelSizeMeters();
-
-        pose = threadPack.isamOffset.getValue() * threadPack.loopOffset.getValue() * threadPack.tracker->densePoseGraph.at(latestDensePoseIdCopy - 1).pose;
-
-        Eigen::Vector3f translation = pose.topRightCorner(3, 1);
-
-        Eigen::Vector3f initialTrans = Eigen::Vector3f::Constant(Volume::get().getVolumeSize() * 0.5) - threadPack.tracker->getVolumeOffset();
-
-        Eigen::Vector3f currentCubeTranslation = initialTrans;
-        currentCubeTranslation(0) += std::floor(translation(0) / voxelSizeMeters.x) * voxelSizeMeters.x;
-        currentCubeTranslation(1) += std::floor(translation(1) / voxelSizeMeters.y) * voxelSizeMeters.y;
-        currentCubeTranslation(2) += std::floor(translation(2) / voxelSizeMeters.z) * voxelSizeMeters.z;
-
-        //Kinda hacky
-        if(volumeShifting)
-        {
-            tsdfCube.setEmpty();
-            tsdfCube.extend(currentCubeTranslation + Eigen::Vector3f::Constant(Volume::get().getVolumeSize() / 2.0f));
-            tsdfCube.extend(currentCubeTranslation - Eigen::Vector3f::Constant(Volume::get().getVolumeSize() / 2.0f));
-        }
-
-        pangolin::glDrawAlignedBox(tsdfCube);
-
-        glColor3f(0, 1, 0);
-        pangolin::glDrawFrustum(Kinv, Resolution::get().width(), Resolution::get().height(), pose, 0.1f);
-        glColor3f(1, 1, 1);
-    }
-
-    int latestPoseIdCopy = threadPack.latestPoseId.getValue();
-
-    if(ConfigArgs::get().onlineDeformation)
-    {
-        boost::mutex::scoped_lock lock(threadPack.poolMutex, boost::try_to_lock);
-
-        if(lock)
-        {
-            if(threadPack.poolLooped.getValue())
-            {
-                removeAllClouds();
-                numPoints = 0;
-                threadPack.poolLooped.assignValue(false);
-            }
-
-            if((int)threadPack.pointPool->size() != numPoints)
-            {
-                pcl::PointCloud<pcl::PointXYZRGBNormal>::Ptr tempCloud(new pcl::PointCloud<pcl::PointXYZRGBNormal>);
-
-                tempCloud->points.insert(tempCloud->end(), threadPack.pointPool->begin() + numPoints, threadPack.pointPool->end());
-
-                lock.unlock();
-
-                numPoints = threadPack.pointPool->size();
-
-                static int i = 0;
-                std::stringstream strs;
-                strs << "pool" << i++;
-
-                clouds.push_back(new PangoCloud(tempCloud.get()));
-            }
-            else
-            {
-                lock.unlock();
-            }
-        }
-
-        removeAllShapes();
-
-        for(int i = 2; i < latestPoseIdCopy; i++)
-        {
-            if(ConfigArgs::get().dynamicCube && !threadPack.cloudSlices.at(i)->poseIsam.getValue())
-                break;
-
-            Eigen::Matrix4f pose = Eigen::Matrix4f::Identity();
-            pose.topLeftCorner(3, 3) = threadPack.cloudSlices.at(i)->cameraRotation;
-            pose.topRightCorner(3, 1) = threadPack.cloudSlices.at(i)->cameraTranslation;
-            poses.push_back(pose);
-
-            if(i > 2)
-            {
-                lines.push_back(std::pair<Eigen::Vector3f, Eigen::Vector3f>(threadPack.cloudSlices.at(i)->cameraTranslation,
-                                                                            threadPack.cloudSlices.at(i - 1)->cameraTranslation));
-            }
-        }
-    }
-    else
-    {
-        while(latestDrawnPoseCloudId < latestPoseIdCopy)
-        {
-            clouds.push_back(new PangoCloud(threadPack.cloudSlices.at(latestDrawnPoseCloudId)->processedCloud));
-
-            numPoints += threadPack.cloudSlices.at(latestDrawnPoseCloudId)->processedCloud->size();
-
-            if(latestDrawnPoseCloudId > 1)
-            {
-                Eigen::Matrix4f pose = Eigen::Matrix4f::Identity();
-                pose.topLeftCorner(3, 3) = threadPack.cloudSlices.at(latestDrawnPoseCloudId)->cameraRotation;
-                pose.topRightCorner(3, 1) = threadPack.cloudSlices.at(latestDrawnPoseCloudId)->cameraTranslation;
-                poses.push_back(pose);
-
-                if(latestDrawnPoseCloudId > 2)
-                {
-                    lines.push_back(std::pair<Eigen::Vector3f, Eigen::Vector3f>(threadPack.cloudSlices.at(latestDrawnPoseCloudId)->cameraTranslation,
-                                                                                threadPack.cloudSlices.at(latestDrawnPoseCloudId - 1)->cameraTranslation));
-                }
-            }
-            latestDrawnPoseCloudId++;
-        }
-    }
-#endif
+    //...
 }
 
 void PangoVis::processTsdf()
 {
-#if 0
-    if(threadPack.finalised.getValue())
-    {
-        if(liveTSDF)
-        {
-            delete liveTSDF;
-            liveTSDF = 0;
-        }
-    }
-    else if(drawTSDF)
-    {
-        boost::mutex::scoped_lock tsdfLock(threadPack.tracker->tsdfMutex);
-
-        if(threadPack.tracker->tsdfAvailable)
-        {
-            if(liveTSDF)
-            {
-                delete liveTSDF;
-                liveTSDF = 0;
-            }
-
-            if(ConfigArgs::get().dynamicCube)
-            {
-                pcl::transformPointCloud(*threadPack.tracker->getLiveTsdf()->cloud, *threadPack.tracker->getLiveTsdf()->cloud, threadPack.isamOffset.getValue());
-            }
-
-            liveTSDF = new PangoCloud(threadPack.tracker->getLiveTsdf()->cloud);
-
-            threadPack.tracker->tsdfAvailable = false;
-        }
-    }
-#endif
+    //...
 }
 
 void PangoVis::processMeshes()
 {
-#if 0
-    int latestMeshIdCopy = threadPack.latestMeshId.getValue();
-
-    if(ConfigArgs::get().incrementalMesh)
-    {
-        boost::mutex::scoped_lock lock(threadPack.incMeshMutex, boost::try_to_lock);
-
-        if(lock)
-        {
-            int numIncPoints = threadPack.incrementalMesh->mesh->cloud.width * threadPack.incrementalMesh->mesh->cloud.height;
-
-            bool looped = threadPack.incMeshLooped.getValue();
-
-            if((int)threadPack.incrementalMesh->mesh->polygons.size() != numTriangles || numIncPoints != numTrianglePoints || looped)
-            {
-                removeAllMeshes();
-
-                numTriangles = threadPack.incrementalMesh->mesh->polygons.size();
-                numTrianglePoints = numIncPoints;
-
-                if(incMesh)
-                {
-                    delete incMesh;
-                    incMesh = 0;
-                }
-
-                incMesh = new PangoMesh(threadPack.incrementalMesh->mesh.get());
-
-                if(looped)
-                {
-                    threadPack.incMeshLooped.assignValue(false);
-                }
-            }
-        }
-    }
-    else
-    {
-        while(latestDrawnMeshId < latestMeshIdCopy)
-        {
-            if(threadPack.triangles.at(latestDrawnMeshId)->polygons.size() > 0)
-            {
-                meshes.push_back(new PangoMesh(threadPack.triangles.at(latestDrawnMeshId)));
-                numTriangles += threadPack.triangles.at(latestDrawnMeshId)->polygons.size();
-            }
-            latestDrawnMeshId++;
-        }
-    }
-#endif
+    //...
 }
 
 void PangoVis::render()
@@ -394,67 +205,6 @@ void PangoVis::render()
     rgbVideoTex.RenderToViewport(true);
 
     glEnable(GL_DEPTH_TEST);
-
-#if 0
-    if((ConfigArgs::get().incrementalMesh || ConfigArgs::get().enableMeshGenerator) && drawMesh)
-    {
-        for(size_t i = 0; i < meshes.size(); i++)
-        {
-            meshes.at(i)->drawTriangles(drawMeshNormals);
-        }
-
-        if(incMesh)
-        {
-            incMesh->drawTriangles(drawMeshNormals);
-        }
-    }
-    else if(drawCloud)
-    {
-        for(size_t i = 0; i < clouds.size(); i++)
-        {
-            clouds.at(i)->drawPoints();
-        }
-
-    }
-
-    if(liveTSDF)
-    {
-        liveTSDF->drawPoints();
-    }
-
-    glColor3f(1, 0, 1);
-    for(size_t i = 0; i < lines.size(); i++)
-    {
-        pangolin::glDrawLine(lines.at(i).first(0),
-                             lines.at(i).first(1),
-                             lines.at(i).first(2),
-                             lines.at(i).second(0),
-                             lines.at(i).second(1),
-                             lines.at(i).second(2));
-    }
-
-    glColor3f(1, 1, 1);
-    for(size_t i = 0; i < poses.size(); i++)
-    {
-        pangolin::glDrawFrustum(Kinv, Resolution::get().width(), Resolution::get().height(), poses.at(i), 0.05f);
-    }
-
-    glDisable(GL_DEPTH_TEST);
-
-    pangolin::Display("Img").Activate();
-    rgbTex.RenderToViewport(true);
-
-    pangolin::Display("Depth").Activate();
-    depthTex.RenderToViewport(true);
-
-    pangolin::Display("ModelImg").Activate();
-    tsdfRgbTex.RenderToViewport(true);
-
-    pangolin::Display("Model").Activate();
-    tsdfTex.RenderToViewport(true);
-
-    glEnable(GL_DEPTH_TEST);
-#endif
 }
 
 void PangoVis::processImages()
@@ -475,88 +225,16 @@ void PangoVis::processImages()
         imageLock.unlock();
     }
 
-    rgbTex.Upload(threadPack.tracker->lastRgbImage, GL_RGB, GL_UNSIGNED_BYTE);
-    rgbVideoTex.Upload(threadPack.tracker->lastRgbImage, GL_RGB, GL_UNSIGNED_BYTE);
-
-
-
-
-
-/*
-    boost::mutex::scoped_lock imageLock(threadPack.tracker->imageMutex, boost::try_to_lock);
-
-    if(imageLock && threadPack.tracker->imageAvailable)
+    //flq,pangovis图像显示部分
+    //if(threadPack.tracker->lastRgbImage/* && threadPack.tracker->lastVideoImage*/)
+    if(threadPack.tracker->lastVideoImage)
     {
-        threadPack.tracker->imageAvailable = false;
-
-        memcpy(tsdfImg.ptr, threadPack.tracker->getLiveImage()->tsdfImage, Resolution::get().numPixels() * 3);
-        memcpy(tsdfImgColor.ptr, threadPack.tracker->getLiveImage()->tsdfImageColor, Resolution::get().numPixels() * 3);
-        memcpy(rgbImg.ptr, threadPack.tracker->getLiveImage()->rgbImage, Resolution::get().numPixels() * 3);
-        memcpy(&depthBuffer[0], threadPack.tracker->getLiveImage()->depthData, Resolution::get().numPixels() * 2);
-
-        imageLock.unlock();
-
-        float max = 0;
-
-        for(int i = 0; i < Resolution::get().numPixels(); i++)
-        {
-            if(depthBuffer[i] > max)
-            {
-                max = depthBuffer[i];
-            }
-        }
-
-        for(size_t i = 0; i < depthImg.Area(); i++)
-        {
-            depthImg[i].x = ((float)depthBuffer[i] / max) * 255.0f;
-            depthImg[i].y = ((float)depthBuffer[i] / max) * 255.0f;
-            depthImg[i].z = ((float)depthBuffer[i] / max) * 255.0f;
-        }
-
-        rgbTex.Upload(rgbImg.ptr, GL_RGB, GL_UNSIGNED_BYTE);
-        depthTex.Upload(depthImg.ptr, GL_RGB, GL_UNSIGNED_BYTE);
-        tsdfRgbTex.Upload(tsdfImgColor.ptr, GL_RGB, GL_UNSIGNED_BYTE);
-        tsdfTex.Upload(tsdfImg.ptr, GL_BGR, GL_UNSIGNED_BYTE);
-
-        //For a minimal "TSDF" visualisation
-        if(!drawTSDF)
-        {
-            if(liveTSDF)
-            {
-                delete liveTSDF;
-                liveTSDF = 0;
-            }
-
-            pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud (new pcl::PointCloud <pcl::PointXYZRGB>);
-
-            for(int i = 0; i < Resolution::get().width(); i++)
-            {
-                for(int j = 0; j < Resolution::get().height(); j++)
-                {
-                    if(depthBuffer[j * Resolution::get().width() + i])
-                    {
-                        pcl::PointXYZRGB pt;
-                        pt.z = depthBuffer[j * Resolution::get().width() + i] * 0.001f;
-                        pt.x = (static_cast<float>(i) - K(0, 2)) * pt.z * (1.0f / K(0, 0));
-                        pt.y = (static_cast<float>(j) - K(1, 2)) * pt.z * (1.0f / K(1, 1));
-                        pt.b = rgbImg(i, j).x;
-                        pt.g = rgbImg(i, j).y;
-                        pt.r = rgbImg(i, j).z;
-                        cloud->push_back(pt);
-                    }
-                }
-            }
-
-            pcl::transformPointCloud(*cloud, *cloud, pose);
-
-            liveTSDF = new PangoCloud(cloud.get());
-        }
+        //声源定位显示
+        rgbTex.Upload(threadPack.tracker->lastRgbImage, GL_RGB, GL_UNSIGNED_BYTE);
+        //视频显示
+        rgbVideoTex.Upload(threadPack.tracker->lastVideoImage, GL_RGB, GL_UNSIGNED_BYTE);
     }
-    else if(imageLock)
-    {
-        imageLock.unlock();
-    }
-*/
+
 }
 
 void PangoVis::handleInput()

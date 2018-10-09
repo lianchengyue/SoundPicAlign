@@ -41,6 +41,7 @@ class FrontProcessor
     virtual ~FrontProcessor();
 
     void processFrame(unsigned char * rgbImage, vector<Point2f> points2d);
+    void processVideoFrame(unsigned char *rgbImage);
 
     void finalise();
 
@@ -54,6 +55,7 @@ class FrontProcessor
     ThreadMutexObject<uint64_t> init_utime;
     ThreadMutexObject<unsigned char *> firstRgbImage;
     unsigned char * lastRgbImage;
+    unsigned char * lastVideoImage;
 
 
   private:

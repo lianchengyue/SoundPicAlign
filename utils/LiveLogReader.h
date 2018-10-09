@@ -23,7 +23,8 @@ class LiveLogReader : public LogReader
         LiveLogReader();
         virtual ~LiveLogReader();
 
-        bool grabNext(bool & returnVal, int & currentFrame);
+        bool grabNext(bool& returnVal, int& frame_idx);
+        bool grabTrigerdNext(bool& returnVal/*, int& frame_idx*/);
 
     private:
 #ifdef HIKVISION_GRAB_FUNC

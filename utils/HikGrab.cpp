@@ -2,6 +2,7 @@
 #include "HikGrab.h"
 
 #include "frontend/Resolution.h"
+#include "utils/utils.h"
 
 #define OPENCV_WIN
 #define FPS_LOG_FREQ 3
@@ -18,6 +19,8 @@ using namespace cv;
     std::list<cv::Mat> g_frameList;
 
     FILE *g_pFile;
+
+//    bool isDecCBFun = false;
 
 void HikGrab::PsDataCallBack(LONG lRealHandle, DWORD dwDataType,BYTE *pPacketBuffer,DWORD nPacketSize, void* pUser)
 {
@@ -61,9 +64,11 @@ void HikGrab::CALLBACK DecCBFun(LONG nPort, char *pBuf, LONG nSize, FRAME_INFO *
                  CV_8UC3);
 
            cv::Mat src(pFrameInfo->nHeight + pFrameInfo->nHeight / 2, pFrameInfo->nWidth, CV_8UC1, (uchar *)pBuf);
-           cv::cvtColor(src, dst, CV_YUV2BGR_YV12);
+           //cv::cvtColor(src, dst, CV_YUV2BGR_YV12);
+           cv::cvtColor(src, dst, CV_YUV2RGB_YV12);
            pthread_mutex_lock(&mutex);
            g_frameList.push_back(dst);
+           //isDecCBFun = true;
            pthread_mutex_unlock(&mutex);
      }
     usleep(1000);
@@ -211,6 +216,14 @@ HikGrab::HikGrab()
     mFPSCount = 0;
     mFrameIdx = 0;
  ///flq   decompressionBuffer = new unsigned char [Resolution::get().numPixels() * 2];
+
+    for(int i = 0; i < numBuffers; i++)
+    {
+        uint8_t * newImage = (uint8_t *)calloc(RESOLUTION_WIDTH * RESOLUTION_HEIGHT * 3, sizeof(uint8_t));
+        frameBuffers[i] = newImage;
+    }
+
+    //hik init
     h = NULL;
     nPort = -1;
     g_pFile = NULL;
@@ -233,63 +246,15 @@ HikGrab::HikGrab()
 
 HikGrab::~HikGrab()
 {
-
+    for(int i = 0; i < numBuffers; i++)
+    {
+        free(frameBuffers[i]);
+    }
 }
 
 
 int HikGrab::grab()
 {
-#if 0
-    int width = Resolution::get().width();
-    int height = Resolution::get().height();
-
-    if(1 == viewer_status) //0:off 1:on
-    {
-        namedWindow("usb camera",WINDOW_AUTOSIZE);
-    }
-
-    VideoCapture capture(0);
-    //设置图片的大小
-    capture.set(CV_CAP_PROP_FRAME_WIDTH, width);//1280 INPUT_WIDTH
-    capture.set(CV_CAP_PROP_FRAME_HEIGHT, height);//960 INPUT_HEIGHT
-    while (1)
-    {
-        Mat frame;
-        capture >> frame;
-
-        //释放zbar相关
-        //if(100 == mFrameIdx)
-        //{
-        //   delete m_scancode;
-        //}
-
-        //帧数及帧率
-        if(0 == mFrameIdx)
-        {
-            printf("first usb frame arrives!\n");
-        }
-
-        ////printf("mFrameIdx=%d,", mFrameIdx);
-
-        if(0 == mFPSCount)
-        {
-            gettimeofday(&mPreviewStartTime, NULL);
-        }
-
-        printfps(frame);
-
-        char c = cv::waitKey(10); //100 CV_WAITKEY_INTERVAL
-        if (c == 't')
-        {
-            break;
-        }
-
-        //cvtColor(frame,mScanImgData.imageGray,CV_RGB2GRAY);
-        imshow("usb camera",frame);
-
-        mFrameIdx++;
-    }
-#endif
     //HIKON
     pthread_t getframe;
 
@@ -337,11 +302,10 @@ cv::Mat* HikGrab::getCurrentFrame()
     }
 
 
-    cv::Mat CurrentFrame;
+    //while(!isDecCBFun)
     while(1)
-//    for(int i = 0; i<1000; i++)
     {
-        pthread_mutex_lock(&mutex);
+///        pthread_mutex_lock(&mutex);
         if(g_frameList.size())
         {
             std::list<cv::Mat>::iterator it;
@@ -350,49 +314,24 @@ cv::Mat* HikGrab::getCurrentFrame()
             CurrentFrame = (*(it));
             if (!CurrentFrame.empty())
             {
-                imshow("hik camera",CurrentFrame);
-                cv::waitKey(1);
+                //added by flq
+                int bufferIndex = mFrameIdx % numBuffers;
+                memcpy(frameBuffers[bufferIndex], CurrentFrame.data, width * height * 3); ///crash when v4l2 busy
+                mFrameIdx++;
+                //added end
+                //使反色正常
+                //cvtColor(CurrentFrame, CurrentFrame, CV_RGB2BGR);
+///                imshow("hik camera",CurrentFrame); // show error for video decompression
+                cv::waitKey(1000);
+                break; //flq,有数据，跳出循环
             }
             g_frameList.pop_front();
         }
         g_frameList.clear(); // 丢掉旧的帧
-        pthread_mutex_unlock(&mutex);
+///        pthread_mutex_unlock(&mutex);
     }
 
-
     return &CurrentFrame;
-
-#if 0
-    int width = Resolution::get().width();
-    int height = Resolution::get().height();
-
-    if(1 == viewer_status) //0:off 1:on
-    {
-        namedWindow("usb camera",WINDOW_AUTOSIZE);
-    }
-
-    VideoCapture capture(0);
-    //设置图片的大小
-    capture.set(CV_CAP_PROP_FRAME_WIDTH, width);//1280 INPUT_WIDTH
-    capture.set(CV_CAP_PROP_FRAME_HEIGHT, height);//960 INPUT_HEIGHT
-
-
-    capture >> CurrentFrame;
-    //使反色正常
-    cvtColor(CurrentFrame, CurrentFrame, CV_RGB2BGR);
-    imwrite("tt.jpg", CurrentFrame);
-
-    //test
-/*
-    cv::Mat Image(Resolution::get().height(),Resolution::get().width(),CV_8UC3,cv::Scalar(0));
-    unsigned char *rgbImage;
-    rgbImage =  CurrentFrame.data;
-    Image.data = rgbImage;
-    imwrite("outout.jpg", Image);
-*/
-    //test end
-    return &CurrentFrame;
-#endif
 }
 
 //print fps
@@ -418,7 +357,6 @@ int HikGrab::getViewerStatus()
     char *sect;
     char *key;
     int intval;
-
 
     //小于3fps,设为3fps
     if(intval < 0)

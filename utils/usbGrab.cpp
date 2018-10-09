@@ -2,6 +2,7 @@
 #include "usbGrab.h"
 
 #include "frontend/Resolution.h"
+#include "utils/utils.h"
 
 #define OPENCV_WIN
 #define FPS_LOG_FREQ 3
@@ -13,12 +14,20 @@ usbGrab::usbGrab()
 {
     mFPSCount = 0;
     mFrameIdx = 0;
- ///flq   decompressionBuffer = new unsigned char [Resolution::get().numPixels() * 2];
+ ///flq   decompressionBuffer = new unsigned char [Resolution::get().numPixels() * 2]; 
+    for(int i = 0; i < numBuffers; i++)
+    {
+        unsigned char* newImage = (unsigned char *)calloc(RESOLUTION_WIDTH * RESOLUTION_HEIGHT * 3, sizeof(unsigned char));
+        frameBuffers[i] = newImage;
+    }
 }
 
 usbGrab::~usbGrab()
 {
-
+    for(int i = 0; i < numBuffers; i++)
+    {
+        free(frameBuffers[i]);
+    }
 }
 
 
@@ -40,12 +49,6 @@ int usbGrab::grab()
     {
         Mat frame;
         capture >> frame;
-
-        //释放zbar相关
-        //if(100 == mFrameIdx)
-        //{
-        //   delete m_scancode;
-        //}
 
         //帧数及帧率
         if(0 == mFrameIdx)
@@ -90,11 +93,17 @@ cv::Mat* usbGrab::getCurrentFrame()
     capture.set(CV_CAP_PROP_FRAME_WIDTH, width);//1280 INPUT_WIDTH
     capture.set(CV_CAP_PROP_FRAME_HEIGHT, height);//960 INPUT_HEIGHT
 
-
     capture >> CurrentFrame;
+
+    //added by flq
+    int bufferIndex = mFrameIdx % numBuffers;
+    memcpy(frameBuffers[bufferIndex], CurrentFrame.data, width * height * 3); ///crash when v4l2 busy
+    mFrameIdx++;
+    //added end
+
     //使反色正常
     cvtColor(CurrentFrame, CurrentFrame, CV_RGB2BGR);
-    imwrite("tt.jpg", CurrentFrame);
+    //imwrite("tt.jpg", CurrentFrame);
 
     //test
 /*
@@ -132,7 +141,6 @@ int usbGrab::getViewerStatus()
     char *sect;
     char *key;
     int intval;
-
 
     //小于3fps,设为3fps
     if(intval < 0)

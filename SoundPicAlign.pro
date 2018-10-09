@@ -25,7 +25,6 @@ HEADERS += \
     utils/LiveLogReader.h \
     utils/LogReader.h \
     utils/usbGrab.h \
-    Marco.h \
     utils/HikGrab.h \
     utils/ThreadObject.h \
     utils/ThreadMutexObject.h \

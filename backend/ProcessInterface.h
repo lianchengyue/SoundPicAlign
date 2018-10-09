@@ -65,7 +65,7 @@ class ProcessInterface : public ThreadObject
         FrontProcessor * frontend;
 
         
-        int currentFrame;
+        int frame_idx;
         bool firstRun;
         //弧度制
         double euler_arc_X;

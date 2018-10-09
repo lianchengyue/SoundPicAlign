@@ -12,23 +12,19 @@
 #include <boost/filesystem.hpp>
 
 #include "FrontProcessor.h"
-
+#include "utils/Macros.h"
 
 //KintinuousTracker
 FrontProcessor::FrontProcessor(cv::Mat * Intrinsics)
- : tsdfAvailable(false),
-   imageAvailable(false),
-   cycledMutex(false),
-   global_time_(0),
-   cycled(false),
-   overlap(0),
-   parked(false)
+ : global_time_(0),
+   lastRgbImage(0),
+   lastVideoImage(0)
 {
+    //my mark
 //    intr.fx = Intrinsics->at<double>(0, 0);
 //    intr.fy = Intrinsics->at<double>(1, 1);
 //    intr.cx = Intrinsics->at<double>(0, 2);
 //    intr.cy = Intrinsics->at<double>(1, 2);
-
 
     init_utime.assignValue(std::numeric_limits<unsigned long long>::max());
     firstRgbImage.assignValue(0);
@@ -38,7 +34,7 @@ FrontProcessor::FrontProcessor(cv::Mat * Intrinsics)
 
 FrontProcessor::~FrontProcessor()
 {
-//    delete tsdf_volume_;
+
 }
 
 
@@ -51,12 +47,13 @@ void FrontProcessor::processFrame(unsigned char *rgbImage, vector<Point2f> point
 {
     //定位到像素坐标系
     //后续需要根据相机的rotation做判断
+#ifdef WATERMARK_FUNC
     cv::Mat Image(Resolution::get().height(),Resolution::get().width(),CV_8UC3,cv::Scalar(255));
     Image.data =  rgbImage;
 
     cv::Mat logo = imread("icon.jpg", 1);
     cvtColor(logo, logo, CV_RGB2BGR);//CV_RGB2GRAY
-#if 1
+
     if(((int)points2d[0].x < Resolution::get().width() - logo.cols/2)
             && ((int)points2d[0].y < Resolution::get().height() - logo.rows/2)
             && (int)points2d[0].x > 0
@@ -74,6 +71,13 @@ void FrontProcessor::processFrame(unsigned char *rgbImage, vector<Point2f> point
     //传值
     lastRgbImage = rgbImage;
     printf("lastRgbImage:0x%x, strlen(lastRgbImage)=%d\n", lastRgbImage, strlen((char*)lastRgbImage));
+}
+
+void FrontProcessor::processVideoFrame(unsigned char *rgbImage)
+{
+    //传值
+    lastVideoImage = rgbImage;
+    printf("lastVideoImage:0x%x, strlen(lastVideoImage)=%d\n", lastVideoImage, strlen((char*)lastVideoImage));
 }
 
 

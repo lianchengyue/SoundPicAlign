@@ -4,7 +4,7 @@ ProcessInterface::ProcessInterface(LogReader * logRead, cv::Mat * Intrinsics)
  : ThreadObject("ProcessInterfaceThread"),
    endRequested(false),
    logRead(logRead),
-   currentFrame(0),
+   frame_idx(0),
    firstRun(true)
 {
     printf("ProcessInterface\n");
@@ -30,13 +30,14 @@ ProcessInterface::~ProcessInterface()
 
 void ProcessInterface::reset()
 {
-    currentFrame = 0;
+    frame_idx = 0;
     frontend->reset();
 }
 
+//预览video的函数
 bool /*inline*/ ProcessInterface::process()
 {
-//    printf("ProcessInterface::process() start!\n");
+    printf("ProcessInterface::process() start!\n");
     if(firstRun)
     {
         firstRun = false;
@@ -52,7 +53,7 @@ bool /*inline*/ ProcessInterface::process()
 
         bool shouldEnd = endRequested.getValue();
 
-        if(!logRead->grabNext(returnVal, currentFrame) || shouldEnd)
+        if(!logRead->grabNext(returnVal, frame_idx) || shouldEnd)
         {
 //            threadPack.pauseCapture.assignValue(true);
 //            threadPack.finalised.assignValue(true);
@@ -61,7 +62,19 @@ bool /*inline*/ ProcessInterface::process()
 
             return shouldEnd ? false : returnVal;
         }
-        currentFrame++;
+
+        //
+        //flqq, new processFrame(, in FrontProcessor
+        frontend->processVideoFrame(logRead->decompressedImage);
+        frame_idx++;
+
+        uint64_t duration = Stopwatch::getCurrentSystemTime() - start;
+
+        if(threadPack.limit.getValue() && duration < 33333)
+        {
+            int sleepTime = std::max(int(33333 - duration), 0);
+            usleep(sleepTime);
+        }
 
         TOCK(threadIdentifier);
     }
@@ -71,6 +84,7 @@ bool /*inline*/ ProcessInterface::process()
 
 bool /*inline*/ ProcessInterface::process(cv::Mat* Intrinsics)
 {
+    //temp
     printf("ProcessInterface::process(cv::Mat *)\n");
 
     vector<Point2f> p2d;
@@ -91,42 +105,17 @@ bool /*inline*/ ProcessInterface::process(cv::Mat* Intrinsics)
 
         bool shouldEnd = endRequested.getValue();
 
-        if(!logRead->grabNext(returnVal, currentFrame)/* || shouldEnd*/)
+        if(!logRead->grabNext(returnVal, frame_idx)/* || shouldEnd*/)
         {
             threadPack.pauseCapture.assignValue(true);
             threadPack.finalised.assignValue(true);
 
-//            finalise();
-
-//            while(!threadPack.cloudSliceProcessorFinished.getValueWait())
-//            {
-//                frontend->cloudSignal.notify_all();
-//            }
 
             return shouldEnd ? false : returnVal;
         }
 
-///        rgb24.data = (PixelRGB *)logRead->decompressedImage;
-
-//////        currentFrame++;
-
-///        rgb24.step = Resolution::get().width() * 3;
-///        rgb24.rows = Resolution::get().rows();
-///        rgb24.cols = Resolution::get().cols();
-
-///        colors_device.upload(rgb24.data, rgb24.step, rgb24.rows, rgb24.cols);
-
         TICK("processFrame");
-/*
-        frontend->processFrame(logRead->decompressedImage,   //flq, rgbImage
-                               logRead->decompressedDepth,
-                               logRead->timestamp,
-                               logRead->isCompressed,
-                               logRead->compressedDepth,
-                               logRead->compressedDepthSize,
-                               logRead->compressedImage,
-                               logRead->compressedImageSize);
-*/
+
         //定位到像素坐标系,p2d为输出
         calc2DCoordinate(Intrinsics, p2d);
 
@@ -148,6 +137,7 @@ bool /*inline*/ ProcessInterface::process(cv::Mat* Intrinsics)
     return true;
 }
 
+//触发定位时的处理函数
 bool /*inline*/ ProcessInterface::process(cv::Mat * Intrinsics, vector<Point3f> p3d)
 {
 #if 1
@@ -171,48 +161,23 @@ bool /*inline*/ ProcessInterface::process(cv::Mat * Intrinsics, vector<Point3f> 
 
         bool shouldEnd = endRequested.getValue();
 
-        if(!logRead->grabNext(returnVal, currentFrame)/* || shouldEnd*/)
+        if(!logRead->grabTrigerdNext(returnVal/*, frame_idx*/)/* || shouldEnd*/)
         {
             threadPack.pauseCapture.assignValue(true);
             threadPack.finalised.assignValue(true);
 
-//            finalise();
-
-//            while(!threadPack.cloudSliceProcessorFinished.getValueWait())
-//            {
-//                frontend->cloudSignal.notify_all();
-//            }
-
             return shouldEnd ? false : returnVal;
         }
 
-///        rgb24.data = (PixelRGB *)logRead->decompressedImage;
-        
-/////////        currentFrame++;
 
-///        rgb24.step = Resolution::get().width() * 3;
-///        rgb24.rows = Resolution::get().rows();
-///        rgb24.cols = Resolution::get().cols();
+        TICK("processTrigerdFrame");
 
-///        colors_device.upload(rgb24.data, rgb24.step, rgb24.rows, rgb24.cols);
-
-        TICK("processFrame");
-/*
-        frontend->processFrame(logRead->decompressedImage,   //flq, rgbImage
-                               logRead->decompressedDepth,
-                               logRead->timestamp,
-                               logRead->isCompressed,
-                               logRead->compressedDepth,
-                               logRead->compressedDepthSize,
-                               logRead->compressedImage,
-                               logRead->compressedImageSize);
-*/
         //定位到像素坐标系,p2d为输出
         calc2DCoordinate(Intrinsics, p3d, p2d);
 
         //加水印
-        frontend->processFrame(logRead->decompressedImage, p2d);
-        TOCK("processFrame");
+        frontend->processFrame(logRead->TrigerSavedImage, p2d);//decompressedImage
+        TOCK("processTrigerdFrame");
 
         uint64_t duration = Stopwatch::getCurrentSystemTime() - start;
 
@@ -262,30 +227,6 @@ bool  ProcessInterface::calcTMatrix()
 
 bool ProcessInterface::calcCameraPose(/*Eigen::Matrix4f& pose*/)
 {
-#if 0
-    //R
-    ThreadDataPack::get().finalpose(0,0) = ThreadDataPack::get().RMatrix.at<double>(0, 0);
-    ThreadDataPack::get().finalpose(0,1) = ThreadDataPack::get().RMatrix.at<double>(0, 1);
-    ThreadDataPack::get().finalpose(0,2) = ThreadDataPack::get().RMatrix.at<double>(0, 2);
-
-    ThreadDataPack::get().finalpose(1,0) = ThreadDataPack::get().RMatrix.at<double>(1, 0);
-    ThreadDataPack::get().finalpose(1,1) = ThreadDataPack::get().RMatrix.at<double>(1, 1);
-    ThreadDataPack::get().finalpose(1,2) = ThreadDataPack::get().RMatrix.at<double>(1, 2);
-
-    ThreadDataPack::get().finalpose(2,0) = ThreadDataPack::get().RMatrix.at<double>(2, 0);
-    ThreadDataPack::get().finalpose(2,1) = ThreadDataPack::get().RMatrix.at<double>(2, 1);
-    ThreadDataPack::get().finalpose(2,2) = ThreadDataPack::get().RMatrix.at<double>(2, 2);
-
-    ThreadDataPack::get().finalpose(3,3) = 1;
-
-    //T
-    ThreadDataPack::get().finalpose(0,3) = ThreadDataPack::get().TMatrix.at<double>(0, 0);
-    ThreadDataPack::get().finalpose(1,3) = ThreadDataPack::get().TMatrix.at<double>(0, 1);
-    ThreadDataPack::get().finalpose(2,3) = ThreadDataPack::get().TMatrix.at<double>(0, 2);
-
-    std::cout<< std::endl << "test pose:" << std::endl << ThreadDataPack::get().finalpose << std::endl;
-    return 0;
-#else
     //R
     ThreadDataPack::get().finalpose(0,0) = ThreadDataPack::get().RMatrix.at<double>(0, 0);
     ThreadDataPack::get().finalpose(0,1) = ThreadDataPack::get().RMatrix.at<double>(0, 1);
@@ -308,7 +249,6 @@ bool ProcessInterface::calcCameraPose(/*Eigen::Matrix4f& pose*/)
 
     std::cout<< std::endl << "test pose:" << std::endl << ThreadDataPack::get().finalpose << std::endl;
     return 0;
-#endif
 }
 
 //flq,3D坐标投影到2维图像
@@ -334,14 +274,12 @@ int ProcessInterface::calc2DCoordinate(cv::Mat* Intrinsics, vector<Point3f> poin
     //旋转矩阵转换为旋转向量
     Rodrigues(ThreadDataPack::get().RMatrix, rvec);
 
-#if 1
     distCoeff.at<double>(0, 0) = -0.2756734608366758;
     distCoeff.at<double>(0, 1) = -0.001303202285062331;
     distCoeff.at<double>(0, 2) = 0.001005134230599892;
     distCoeff.at<double>(0, 3) = -0.0008562559253269711;
     distCoeff.at<double>(0, 4) = 0.2240573152028148;
-#else
-#endif
+
     /*
     float vals[] = {525., 0., 3.1950000000000000e+02,
                     0., 525., 2.3950000000000000e+02,

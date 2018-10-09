@@ -32,6 +32,9 @@ public:
     int getViewerStatus();
     cv::Mat CurrentFrame;
 
+    static const int numBuffers = 10;
+    unsigned char* frameBuffers[numBuffers];
+
 private:
     void printfps(cv::Mat frame);
 
@@ -56,7 +59,6 @@ private:
 //    FILE *g_pFile = NULL;
     static FILE *g_pFile;
 #endif
-    //cv::Mat CurrentFrame;
 
     static void PsDataCallBack(LONG lRealHandle, DWORD dwDataType,BYTE *pPacketBuffer,DWORD nPacketSize, void* pUser);
     static void CALLBACK DecCBFun(LONG nPort, char *pBuf, LONG nSize, FRAME_INFO *pFrameInfo, void* nReserved1, LONG nReserved2);

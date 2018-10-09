@@ -15,16 +15,20 @@ class LogReader
     public:
         LogReader()
          : compressedImage(0),
-           decompressionBuffer(0)
+           decompressionBuffer(0),
+           TrigerSavedBuffer(0)
 //           deCompImage(0)
         {}
 
         virtual ~LogReader()
         {}
 
-        virtual bool grabNext(bool & returnVal, int & currentFrame) = 0;
+        virtual bool grabNext(bool& returnVal, int& frame_idx) = 0;
+        virtual bool grabTrigerdNext(bool& returnVal/*, int& frame_idx*/) = 0;
 
         unsigned char * decompressedImage;
+        //定位触发的同一时间的图片
+        unsigned char * TrigerSavedImage;
 
         unsigned char * compressedImage;
         int32_t compressedDepthSize;
@@ -34,6 +38,8 @@ class LogReader
         bool isCompressed;
 
         Bytef * decompressionBuffer;
+        //定位触发的同一时间图片的buffer
+        Bytef * TrigerSavedBuffer;
         //IplImage * deCompImage;
         cv::Mat * deCompImage;
 };

@@ -11,16 +11,9 @@ MainController * MainController::controller = 0;
 MainController::MainController(int argc, char * argv[])
  : Intrinsics(0),
    pangoVis(0),
-   processInterface(0)
-   /*,
-   trackerInterface(0),
-   meshGenerator(0),
-   placeRecognition(0),
-   cloudSliceProcessor(0),
-   deformation(0),
-   rawRead(0),
+   processInterface(0),
    liveRead(0),
-   logRead(0)*/
+   logRead(0)
 {
     assert(!MainController::controller);
 
@@ -176,7 +169,6 @@ uint64_t MainController::getMaxLag()
 
 void MainController::SnapShot(double px, double py, double pz)
 {
-#if 1
     //像素坐标系中的一个点
     //vector<vector<Point3f>>  points3d(1);   //points3d[0]
     vector<Point3f>  points3d(1);
@@ -185,14 +177,10 @@ void MainController::SnapShot(double px, double py, double pz)
     points3d[0].x = px;
     points3d[0].y = py;
     points3d[0].z = pz;
-//    points3d[0] = Point3f((double)1.0f, (double)2.2f, (double)24.6f); //set x
+//test data
+    //points3d[0] = Point3f((double)1.0f, (double)2.2f, (double)24.6f); //set x
+//test data end
 
-    processInterface->process(Intrinsics, points3d);
-#else
-    printf("SnapShot()\n");
-    //grabNext
-    int currentFrame = 0;
-    bool returnVal = true;
-    logRead->grabNext(returnVal, currentFrame);
-#endif
+    //触发定位时的处理函数
+    processInterface->process(Intrinsics, points3d);  //进行logRead->grabNext(returnVal, currentFrame)
 }
