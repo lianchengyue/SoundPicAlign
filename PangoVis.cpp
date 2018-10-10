@@ -230,9 +230,14 @@ void PangoVis::processImages()
     if(threadPack.tracker->lastVideoImage)
     {
         //声源定位显示
-        rgbTex.Upload(threadPack.tracker->lastRgbImage, GL_RGB, GL_UNSIGNED_BYTE);
+///        rgbTex.Upload(threadPack.tracker->lastRgbImage, GL_RGB, GL_UNSIGNED_BYTE);
         //视频显示
         rgbVideoTex.Upload(threadPack.tracker->lastVideoImage, GL_RGB, GL_UNSIGNED_BYTE);
+    }
+    if(threadPack.tracker->lastRgbImage)
+    {
+        //声源定位显示
+        rgbTex.Upload(threadPack.tracker->lastRgbImage, GL_RGB, GL_UNSIGNED_BYTE);
     }
 
 }

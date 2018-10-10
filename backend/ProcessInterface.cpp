@@ -20,7 +20,7 @@ ProcessInterface::ProcessInterface(LogReader * logRead, cv::Mat * Intrinsics)
     calcTMatrix();
     calcCameraPose();
 
-    process(Intrinsics); //flq.temp
+///    process(Intrinsics); //flq.temp
 }
 
 ProcessInterface::~ProcessInterface()
