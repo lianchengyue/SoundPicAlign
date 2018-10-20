@@ -13,6 +13,9 @@
 
 #include "FrontProcessor.h"
 #include "utils/Macros.h"
+#include "../backend/H264Processor.h"
+
+////FILE *h264_fp;
 
 //KintinuousTracker
 FrontProcessor::FrontProcessor(cv::Mat * Intrinsics)
@@ -29,12 +32,18 @@ FrontProcessor::FrontProcessor(cv::Mat * Intrinsics)
     init_utime.assignValue(std::numeric_limits<unsigned long long>::max());
     firstRgbImage.assignValue(0);
 
+#ifdef VIDEO_COMPRESSION_FUNC
+    m_h264_processor = new H264Processor();
+#endif
+
     reset();
 }
 
 FrontProcessor::~FrontProcessor()
 {
-
+#ifdef VIDEO_COMPRESSION_FUNC
+    delete m_h264_processor;
+#endif
 }
 
 
@@ -49,10 +58,11 @@ void FrontProcessor::processFrame(unsigned char *rgbImage, vector<Point2f> point
     //后续需要根据相机的rotation做判断
 #ifdef WATERMARK_FUNC
     cv::Mat Image(Resolution::get().height(),Resolution::get().width(),CV_8UC3,cv::Scalar(255));
+    //cv::Mat Image(Resolution::get().width(),Resolution::get().height(),CV_8UC3,cv::Scalar(255));
     Image.data =  rgbImage;
 
     cv::Mat logo = imread("icon.jpg", 1);
-    cvtColor(logo, logo, CV_RGB2BGR);//CV_RGB2GRAY
+    cvtColor(logo, logo, CV_RGB2BGR);//CV_RGB2GRAY   //ok:CV_RGB2BGR
 
     if(((int)points2d[0].x < Resolution::get().width() - logo.cols/2)
             && ((int)points2d[0].y < Resolution::get().height() - logo.rows/2)
@@ -78,6 +88,20 @@ void FrontProcessor::processVideoFrame(unsigned char *rgbImage)
     //传值
     lastVideoImage = rgbImage;
     printf("lastVideoImage:0x%x, strlen(lastVideoImage)=%d\n", lastVideoImage, strlen((char*)lastVideoImage));
+
+#ifdef VIDEO_COMPRESSION_FUNC
+    //cv::Mat Image_I420(Resolution::get().width(),Resolution::get().height(),CV_8UC3,cv::Scalar(255));
+    cv::Mat Image_I420(Resolution::get().height(),Resolution::get().width(),CV_8UC3,cv::Scalar(255));
+    memcpy(Image_I420.data, lastVideoImage, Resolution::get().width() * Resolution::get().height() * 3);
+
+///    imwrite("Image_rgb.jpg", Image_I420);
+    cvtColor(Image_I420, Image_I420, CV_RGB2YUV_I420);  //CV_BGR2YUV_I420
+//    imshow("Image_I420", Image_I420);
+//    cv::waitKey(1);  //flq
+///    imwrite("Image_i420.yuv", Image_I420);
+    m_h264_processor->encode_frame((unsigned char *)Image_I420.data, Resolution::get().width() * Resolution::get().height() * 1.5);
+#endif
+
 }
 
 

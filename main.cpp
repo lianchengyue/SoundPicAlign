@@ -251,10 +251,8 @@ int main(int argc, char *argv[])
 #endif
    return 0;
 }
-#endif
 
-
-#if 1
+#else
 #include "PangoVis.h"
 #include "MainController.h"
 

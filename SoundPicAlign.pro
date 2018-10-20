@@ -16,7 +16,9 @@ SOURCES += main.cpp \
     utils/usbGrab.cpp \
     utils/HikGrab.cpp \
     backend/ProcessInterface.cpp \
-    frontend/FrontProcessor.cpp
+    frontend/FrontProcessor.cpp \
+    utils/H264Encoder.cpp \
+    backend/H264Processor.cpp
 
 HEADERS += \
     PangoVis.h \
@@ -33,7 +35,9 @@ HEADERS += \
     backend/ProcessInterface.h \
     frontend/FrontProcessor.h \
     utils/utils.h \
-    utils/Macros.h
+    utils/Macros.h \
+    utils/H264Encoder.h \
+    backend/H264Processor.h
 
 INCLUDEPATH += \
 /usr/local/include/pangolin \
@@ -57,3 +61,5 @@ LIBS +=  \
 /home/montafan/software_download/CH_HCNetSDK_V5.3.5.2/lib/libSuperRender.so\
 /home/montafan/software_download/CH_HCNetSDK_V5.3.5.2/lib/libAudioRender.so \
 /home/montafan/software_download/CH_HCNetSDK_V5.3.5.2/lib/HCNetSDKCom/lib*.so \
+#H.264
+/usr/lib/x86_64-linux-gnu/libx264.so \

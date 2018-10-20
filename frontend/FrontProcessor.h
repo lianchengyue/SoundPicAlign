@@ -14,7 +14,8 @@
 #include "../utils/ThreadMutexObject.h"
 //相机与声纳初始化位姿信息
 #include "utils/utils.h"
-
+//H264
+#include "../backend/H264Processor.h"
 
 #include <boost/thread/mutex.hpp>
 #include <boost/thread/thread.hpp>
@@ -56,6 +57,9 @@ class FrontProcessor
     ThreadMutexObject<unsigned char *> firstRgbImage;
     unsigned char * lastRgbImage;
     unsigned char * lastVideoImage;
+
+    //H264
+    H264Processor* m_h264_processor;
 
 
   private:

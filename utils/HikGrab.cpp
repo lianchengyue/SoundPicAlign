@@ -10,17 +10,15 @@
 using namespace cv;
 //using namespace std;
 
-    cv::Mat dst;
-    HWND h;
-    LONG nPort;
-    LONG lUserID;
+cv::Mat dst;
+HWND h;
+LONG nPort;
+LONG lUserID;
 
-    pthread_mutex_t mutex;
-    std::list<cv::Mat> g_frameList;
+pthread_mutex_t mutex;
+std::list<cv::Mat> g_frameList;
 
-    FILE *g_pFile;
-
-//    bool isDecCBFun = false;
+FILE *g_pFile;
 
 void HikGrab::PsDataCallBack(LONG lRealHandle, DWORD dwDataType,BYTE *pPacketBuffer,DWORD nPacketSize, void* pUser)
 {
@@ -65,13 +63,15 @@ void HikGrab::CALLBACK DecCBFun(LONG nPort, char *pBuf, LONG nSize, FRAME_INFO *
 
            cv::Mat src(pFrameInfo->nHeight + pFrameInfo->nHeight / 2, pFrameInfo->nWidth, CV_8UC1, (uchar *)pBuf);
            //cv::cvtColor(src, dst, CV_YUV2BGR_YV12);
+//cv::imshow("bgr", dst);
+//cv::imwrite("bgr.jpg", dst);  //flq
            cv::cvtColor(src, dst, CV_YUV2RGB_YV12);
            pthread_mutex_lock(&mutex);
            g_frameList.push_back(dst);
-           //isDecCBFun = true;
            pthread_mutex_unlock(&mutex);
      }
-    usleep(1000);
+//    usleep(1000);
+     usleep(10);
 
    //cv::Mat src(pFrameInfo->nHeight + pFrameInfo->nHeight / 2, pFrameInfo->nWidth, CV_8UC1, (uchar *)pBuf);
    //cv::cvtColor(src, dst, CV_YUV2BGR_YV12);
@@ -301,8 +301,6 @@ cv::Mat* HikGrab::getCurrentFrame()
         namedWindow("hik camera",WINDOW_AUTOSIZE);
     }
 
-
-    //while(!isDecCBFun)
     while(1)
     {
 ///        pthread_mutex_lock(&mutex);
