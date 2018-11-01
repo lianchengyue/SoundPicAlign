@@ -10,6 +10,7 @@
 
 #include "../utils/ThreadObject.h"
 #include "../utils/LogReader.h"
+#include "../utils/Macros.h"
 
 class ProcessInterface : public ThreadObject
 {

@@ -97,19 +97,26 @@ int MainController::mainLoop()
 void MainController::loadCalibration()
 {
     Intrinsics = new cv::Mat(cv::Mat::zeros(3, 3, CV_64F));
-#if 1
+
+#ifdef HIKVISION_GRAB_FUNC
+    Intrinsics->at<double>(0, 2) = 944.740327771722;
+    Intrinsics->at<double>(1, 2) = 587.2490988141938;
+    Intrinsics->at<double>(0, 0) = 1325.47033073642;
+    Intrinsics->at<double>(1, 1) = 1335.625929960983;
+    Intrinsics->at<double>(2, 2) = 1;
+
+    distCoeff = new cv::Mat(cv::Mat::zeros(1,5,CV_64F));
+    distCoeff->at<double>(0, 0) = -0.3842780507597445;
+    distCoeff->at<double>(0, 1) = -0.01026628950727477;
+    distCoeff->at<double>(0, 2) = -0.001097510941657248;
+    distCoeff->at<double>(0, 3) = 0.0002966871455004014;
+    distCoeff->at<double>(0, 4) = 0.7321469514653421;
+#else
     Intrinsics->at<double>(0, 2) = 337.0261692101221;
     Intrinsics->at<double>(1, 2) = 234.7394852970879;
     Intrinsics->at<double>(0, 0) = 531.3068894976966;
     Intrinsics->at<double>(1, 1) = 531.8271376287391;
     Intrinsics->at<double>(2, 2) = 1;
-#else
-    Intrinsics->at<double>(0, 2) = 320;
-    Intrinsics->at<double>(1, 2) = 267;
-    Intrinsics->at<double>(0, 0) = 528.01442863461716;
-    Intrinsics->at<double>(1, 1) = 528.01442863461716;
-    Intrinsics->at<double>(2, 2) = 1;
-#endif
 
     distCoeff = new cv::Mat(cv::Mat::zeros(1,5,CV_64F));
     distCoeff->at<double>(0, 0) = -0.2756734608366758;
@@ -117,6 +124,7 @@ void MainController::loadCalibration()
     distCoeff->at<double>(0, 2) = 0.001005134230599892;
     distCoeff->at<double>(0, 3) = -0.0008562559253269711;
     distCoeff->at<double>(0, 4) = 0.2240573152028148;
+#endif
 
     Resolution::get(RESOLUTION_WIDTH, RESOLUTION_HEIGHT);
     std::cout << "loadCalibration(), Intrinsics:" << std::endl << Intrinsics << std::endl;

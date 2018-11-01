@@ -274,11 +274,20 @@ int ProcessInterface::calc2DCoordinate(cv::Mat* Intrinsics, vector<Point3f> poin
     //旋转矩阵转换为旋转向量
     Rodrigues(ThreadDataPack::get().RMatrix, rvec);
 
+#ifdef HIKVISION_GRAB_FUNC
+    distCoeff.at<double>(0, 0) = -0.3842780507597445;
+    distCoeff.at<double>(0, 1) = -0.01026628950727477;
+    distCoeff.at<double>(0, 2) = -0.001097510941657248;
+    distCoeff.at<double>(0, 3) = 0.0002966871455004014;
+    distCoeff.at<double>(0, 4) = 0.7321469514653421;
+#else
     distCoeff.at<double>(0, 0) = -0.2756734608366758;
     distCoeff.at<double>(0, 1) = -0.001303202285062331;
     distCoeff.at<double>(0, 2) = 0.001005134230599892;
     distCoeff.at<double>(0, 3) = -0.0008562559253269711;
     distCoeff.at<double>(0, 4) = 0.2240573152028148;
+#endif
+
 
     /*
     float vals[] = {525., 0., 3.1950000000000000e+02,

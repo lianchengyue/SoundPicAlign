@@ -51,7 +51,8 @@ INCLUDEPATH += \
 LIBS +=  \
 /usr/local/lib/libpangolin.so \
 /usr/local/opencv2.4.13/lib/libopencv_*.so \
-/usr/lib/nvidia-390/libGL.so \
+#/usr/lib/nvidia-390/libGL.so \
+/usr/lib/x86_64-linux-gnu/libGL.so \
 /usr/lib/x86_64-linux-gnu/libboost_*.so \
 #/usr/local/lib/libboost_*.so \
 /home/montafan/software_download/CH_HCNetSDK_V5.3.5.2/lib/libhcnetsdk.so\
