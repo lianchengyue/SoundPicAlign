@@ -26,26 +26,6 @@ LiveLogReader::~LiveLogReader()
 
 bool LiveLogReader::grabNext(bool& returnVal, int& frame_idx)
 {
-#if 0
-#ifdef HIKVISION_GRAB_FUNC
-    int bufferIndex = m_hikgrab->getFrameIdx() % 10;
-
-    deCompImage = m_hikgrab->getCurrentFrame();
-
-    if(NULL == deCompImage)
-        return false;
-
-    decompressedImage = (unsigned char *)deCompImage->data;
-    printf("decompressedImage:0x%x, strlen(decompressedImage)=%d\n", decompressedImage, strlen((char*)decompressedImage));
-#else
-    int bufferIndex = m_usbgrab->getFrameIdx() % 10;
-
-    deCompImage = m_usbgrab->getCurrentFrame();
-
-    decompressedImage = (unsigned char *)deCompImage->data;
-    printf("decompressedImage:0x%x, strlen(decompressedImage)=%d\n", decompressedImage, strlen((char*)decompressedImage));
-#endif
-#else
 #ifdef HIKVISION_GRAB_FUNC
     int bufferIndex = m_hikgrab->getFrameIdx() % 10;
 
@@ -53,7 +33,9 @@ bool LiveLogReader::grabNext(bool& returnVal, int& frame_idx)
     memcpy(&decompressionBuffer[0], m_hikgrab->frameBuffers[bufferIndex], Resolution::get().numPixels() * 3);
 
     decompressedImage = (unsigned char*)&decompressionBuffer[0];//decompressedImage 会显示到rgbVideo
+    #ifdef REALTIME_DEBUG
     printf("decompressedImage:0x%x, strlen(decompressedImage)=%d\n", decompressedImage, strlen((char*)decompressedImage));
+    #endif
 #else
     int bufferIndex = m_usbgrab->getFrameIdx() % 10;
 
@@ -61,8 +43,9 @@ bool LiveLogReader::grabNext(bool& returnVal, int& frame_idx)
     memcpy(&decompressionBuffer[0], m_usbgrab->frameBuffers[bufferIndex], Resolution::get().numPixels() * 3);
 
     decompressedImage = (unsigned char*)&decompressionBuffer[0];//decompressedImage 会显示到rgbVideo
+    #ifdef REALTIME_DEBUG
     printf("decompressedImage:0x%x, strlen(decompressedImage)=%d\n", decompressedImage, strlen((char*)decompressedImage));
-#endif
+    #endif
 #endif
     return true;
 }

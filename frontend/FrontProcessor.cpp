@@ -87,7 +87,9 @@ void FrontProcessor::processVideoFrame(unsigned char *rgbImage)
 {
     //传值
     lastVideoImage = rgbImage;
+#ifdef REALTIME_DEBUG
     printf("lastVideoImage:0x%x, strlen(lastVideoImage)=%d\n", lastVideoImage, strlen((char*)lastVideoImage));
+#endif
 
 #ifdef VIDEO_COMPRESSION_FUNC
     //cv::Mat Image_I420(Resolution::get().width(),Resolution::get().height(),CV_8UC3,cv::Scalar(255));
@@ -116,7 +118,7 @@ Mat FrontProcessor::eulerAnglesToRotationMatrix(Vec3f &theta)
                0,       cos(theta[0]),   -sin(theta[0]),
                0,       sin(theta[0]),   cos(theta[0])
                );
-    std::cout << R_x << std::endl;
+    std::cout << "X分量:" << std::endl << R_x << std::endl;
 
     // 计算旋转矩阵的Y分量
     Mat R_y = (Mat_<double>(3,3) <<
@@ -124,18 +126,24 @@ Mat FrontProcessor::eulerAnglesToRotationMatrix(Vec3f &theta)
                0,               1,      0,
                -sin(theta[1]),   0,      cos(theta[1])
                );
-    std::cout << R_y << std::endl;
+    std::cout << "Y分量:" << std::endl << R_y << std::endl;
 
     // 计算旋转矩阵的Z分量
     Mat R_z = (Mat_<double>(3,3) <<
                cos(theta[2]),    -sin(theta[2]),      0,
                sin(theta[2]),    cos(theta[2]),       0,
                0,               0,                  1);
-    std::cout << R_z << std::endl;
+    std::cout << "Z分量:" << std::endl << R_z << std::endl;
 
     // 合并
     Mat R = R_z * R_y * R_x;
-
+#if 1
+    Mat RESULT = (Mat_<double>(3,3) <<
+               cos(theta[1])*cos(theta[2]),    sin(theta[0])*sin(theta[1])*cos(theta[2]) - cos(theta[0])*sin(theta[2]),       cos(theta[0])*sin(theta[1])*cos(theta[2]) + sin(theta[0])*sin(theta[2]),
+               cos(theta[1])*sin(theta[2]),    sin(theta[0])*sin(theta[1])*sin(theta[2]) + cos(theta[0])*cos(theta[2]),       cos(theta[0])*sin(theta[1])*sin(theta[2]) - sin(theta[0])*cos(theta[2]),
+               -sin(theta[1]),                 sin(theta[0])*cos(theta[1]),                                                   cos(theta[0])*cos(theta[1]));
+    std::cout << "RES:" << std::endl << RESULT << std::endl;
+#endif
     return R;
 }
 

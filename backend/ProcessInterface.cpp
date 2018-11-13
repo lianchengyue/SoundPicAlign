@@ -15,6 +15,7 @@ ProcessInterface::ProcessInterface(LogReader * logRead, cv::Mat * Intrinsics)
     euler_arc_X = 2*PI*CAMERA_EULER_X/360.f;
     euler_arc_Y = 2*PI*CAMERA_EULER_Y/360.f;
     euler_arc_Z = 2*PI*CAMERA_EULER_Z/360.f;
+    printf("euler_arc_X=%f, euler_arc_Y=%f, euler_arc_Z=%f\n", euler_arc_X, euler_arc_Y, euler_arc_Z);
 
     calcRMatrix();
     calcTMatrix();
@@ -37,7 +38,9 @@ void ProcessInterface::reset()
 //预览video的函数
 bool /*inline*/ ProcessInterface::process()
 {
+#ifdef REALTIME_DEBUG
     printf("ProcessInterface::process() start!\n");
+#endif
     if(firstRun)
     {
         firstRun = false;
@@ -230,6 +233,27 @@ bool ProcessInterface::calcCameraPose(/*Eigen::Matrix4f& pose*/)
     //R
     ThreadDataPack::get().finalpose(0,0) = ThreadDataPack::get().RMatrix.at<double>(0, 0);
     ThreadDataPack::get().finalpose(0,1) = ThreadDataPack::get().RMatrix.at<double>(0, 1);
+    ThreadDataPack::get().finalpose(0,2) = ThreadDataPack::get().RMatrix.at<double>(0, 2);
+
+    ThreadDataPack::get().finalpose(1,0) = ThreadDataPack::get().RMatrix.at<double>(1, 0);
+    ThreadDataPack::get().finalpose(1,1) = ThreadDataPack::get().RMatrix.at<double>(1, 1);
+    ThreadDataPack::get().finalpose(1,2) = ThreadDataPack::get().RMatrix.at<double>(1, 2);
+
+    ThreadDataPack::get().finalpose(2,0) = ThreadDataPack::get().RMatrix.at<double>(2, 0);
+    ThreadDataPack::get().finalpose(2,1) = ThreadDataPack::get().RMatrix.at<double>(2, 1);
+    ThreadDataPack::get().finalpose(2,2) = ThreadDataPack::get().RMatrix.at<double>(2, 2);
+
+    ThreadDataPack::get().finalpose(3,3) = 1;
+
+    //T
+    ThreadDataPack::get().finalpose(0,3) = ThreadDataPack::get().TMatrix.at<double>(0, 0);
+    ThreadDataPack::get().finalpose(1,3) = ThreadDataPack::get().TMatrix.at<double>(0, 1);
+    ThreadDataPack::get().finalpose(2,3) = ThreadDataPack::get().TMatrix.at<double>(0, 2);
+
+#if 0
+    //R
+    ThreadDataPack::get().finalpose(0,0) = ThreadDataPack::get().RMatrix.at<double>(0, 0);
+    ThreadDataPack::get().finalpose(0,1) = ThreadDataPack::get().RMatrix.at<double>(0, 1);
     ThreadDataPack::get().finalpose(0,2) = -ThreadDataPack::get().RMatrix.at<double>(0, 2);
 
     ThreadDataPack::get().finalpose(1,0) = ThreadDataPack::get().RMatrix.at<double>(1, 0);
@@ -246,7 +270,7 @@ bool ProcessInterface::calcCameraPose(/*Eigen::Matrix4f& pose*/)
     ThreadDataPack::get().finalpose(0,3) = ThreadDataPack::get().TMatrix.at<double>(0, 0);
     ThreadDataPack::get().finalpose(1,3) = -ThreadDataPack::get().TMatrix.at<double>(0, 1);
     ThreadDataPack::get().finalpose(2,3) = ThreadDataPack::get().TMatrix.at<double>(0, 2);
-
+#endif
     std::cout<< std::endl << "test pose:" << std::endl << ThreadDataPack::get().finalpose << std::endl;
     return 0;
 }
@@ -306,6 +330,7 @@ int ProcessInterface::calc2DCoordinate(cv::Mat* Intrinsics, vector<Point3f> poin
 //    points3d[0].z = 10.f;
     //points3d[0] = Point3f((double)16.3f, (double)2.2f, (double)2.2f); //set x
 ////    points3d[0] = Point3f((double)0.0f, (double)2.2f, (double)24.6f); //set x
+    std::cout << "points3d:" << points3d << std::endl;
 
     projectPoints(Mat(points3d), rvec, ThreadDataPack::get().TMatrix, *Intrinsics/*cameraMatrix*/, distCoeff, points2d);
 
@@ -313,7 +338,6 @@ int ProcessInterface::calc2DCoordinate(cv::Mat* Intrinsics, vector<Point3f> poin
 
     return 0;
 }
-
 
 int ProcessInterface::calc2DCoordinate(cv::Mat* Intrinsics, vector<Point2f>& points2d)
 {
@@ -343,7 +367,7 @@ int ProcessInterface::calc2DCoordinate(cv::Mat* Intrinsics, vector<Point2f>& poi
 //    points3d[0].y = 10.f;
 //    points3d[0].z = 10.f;
     //points3d[0] = Point3f((double)16.3f, (double)2.2f, (double)2.2f); //set x
-    points3d[0] = Point3f((double)CAMERA_POSTION_X, (double)-CAMERA_POSTION_Y, (double)CAMERA_POSTION_Z); //set x
+    points3d[0] = Point3f((double)CAMERA_POSTION_X, (double)/*-*/CAMERA_POSTION_Y, (double)CAMERA_POSTION_Z); //set x
 
     projectPoints(Mat(points3d), rvec, ThreadDataPack::get().TMatrix, *Intrinsics/*cameraMatrix*/, distCoeff, points2d);
 
