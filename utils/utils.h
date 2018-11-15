@@ -5,15 +5,12 @@
 #define PI 3.141592f
 
 #define CAMERA_POSTION_X 0
-#define CAMERA_POSTION_Y 0.0f//2.2f   //2.2f
+#define CAMERA_POSTION_Y 2.2f
 #define CAMERA_POSTION_Z 0
 
-//#define CAMERA_EULER_X 0
-//#define CAMERA_EULER_Y (360 - 45)  //45
-//#define CAMERA_EULER_Z 0
-#define CAMERA_EULER_X 0//(360-45)//(360-45)
-#define CAMERA_EULER_Y (360 - 45)//0//(360 - 45)  //45
-#define CAMERA_EULER_Z (360-90)//0//(360-90)                        //X:(360-45) Z:显示OK
+#define CAMERA_EULER_X 0
+#define CAMERA_EULER_Y (360 - 45)//调节俯仰角，面向地面为360-0,面向正前方为360-90
+#define CAMERA_EULER_Z (360 - 90)//调节偏航角,旋转到横屏
 
 
 #define SONA_POSTION_X 0

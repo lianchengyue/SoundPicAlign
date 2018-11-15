@@ -56,7 +56,6 @@ class ProcessInterface : public ThreadObject
         //points3d:输入的空间坐标
         //points2d:待计算的图像坐标系中的坐标
         int calc2DCoordinate(cv::Mat * Intrinsics, vector<Point3f> points3d, vector<Point2f>& points2d);
-        int calc2DCoordinate(cv::Mat* Intrinsics, vector<Point2f>& points2d);
 
 //        PtrStepSz<const unsigned short> depth;
 ///        PtrStepSz<const PixelRGB> rgb24;

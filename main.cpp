@@ -1,258 +1,4 @@
-#if 0
-#include "opencv2/opencv.hpp"
-
-#include <QDir>
-#include <fstream>
-#include <unistd.h>
-//#include "auto_entercs.h"
-
-#include "HCNetSDK.h"
-#include "PlayM4.h"
-#include "LinuxPlayM4.h"
-
-#define HPR_ERROR       -1
-#define HPR_OK               0
-#define USECOLOR          0
-
-static cv::Mat dst;
-HWND h = NULL;
-LONG nPort=-1;
-LONG lUserID;
-
-pthread_mutex_t mutex;
-std::list<cv::Mat> g_frameList;
-
-
-FILE *g_pFile = NULL;
-
-void CALLBACK PsDataCallBack(LONG lRealHandle, DWORD dwDataType,BYTE *pPacketBuffer,DWORD nPacketSize, void* pUser)
-{
-
-   if (dwDataType  == NET_DVR_SYSHEAD)
-   {
-       //写入头数据
-       g_pFile = fopen("/home/montafan/ps.dat", "wb");
-
-       if (g_pFile == NULL)
-       {
-           printf("CreateFileHead fail\n");
-           return;
-       }
-
-       //写入头数据
-       fwrite(pPacketBuffer, sizeof(unsigned char), nPacketSize, g_pFile);
-       printf("write head len=%d\n", nPacketSize);
-   }
-   else
-   {
-       if(g_pFile != NULL)
-       {
-           fwrite(pPacketBuffer, sizeof(unsigned char), nPacketSize, g_pFile);
-           printf("write data len=%d\n", nPacketSize);
-       }
-   }
-
-}
-
-//void CALLBACK DecCBFun(LONG nPort, char *pBuf, LONG nSize, FRAME_INFO *pFrameInfo, LONG nReserved1, LONG nReserved2)
-void CALLBACK DecCBFun(LONG nPort, char *pBuf, LONG nSize, FRAME_INFO *pFrameInfo, void* nReserved1, LONG nReserved2)
-{
-   long lFrameType = pFrameInfo->nType;
-
-     if (lFrameType == T_YV12)
-     {
-      //cv::Mat dst(pFrameInfo->nHeight, pFrameInfo->nWidth,
-      //            CV_8UC3);  // 8UC3表示8bit uchar无符号类型,3通道值
-           dst.create(pFrameInfo->nHeight, pFrameInfo->nWidth,
-                 CV_8UC3);
-
-           cv::Mat src(pFrameInfo->nHeight + pFrameInfo->nHeight / 2, pFrameInfo->nWidth, CV_8UC1, (uchar *)pBuf);
-           cv::cvtColor(src, dst, CV_YUV2BGR_YV12);
-           pthread_mutex_lock(&mutex);
-           g_frameList.push_back(dst);
-           pthread_mutex_unlock(&mutex);
-     }
-    usleep(1000);
-
-   //cv::Mat src(pFrameInfo->nHeight + pFrameInfo->nHeight / 2, pFrameInfo->nWidth, CV_8UC1, (uchar *)pBuf);
-   //cv::cvtColor(src, dst, CV_YUV2BGR_YV12);
-   //cv::imshow("bgr", dst);
-   //pthread_mutex_lock(&mutex);
-   //g_frameList.push_back(dst);
-   //pthread_mutex_unlock(&mutex);
-   //vw << dst;
-   //cv::waitKey(10);
-
-}
-
-void CALLBACK g_RealDataCallBack_V30(LONG lRealHandle, DWORD dwDataType, BYTE *pBuffer, DWORD dwBufSize,void* dwUser)
-{
-   /*
-   if (dwDataType == 1)
-   {
-       PlayM4_GetPort(&nPort);
-       PlayM4_SetStreamOpenMode(nPort, STREAME_REALTIME);
-       PlayM4_OpenStream(nPort, pBuffer, dwBufSize, 1024 * 1024);
-       PlayM4_SetDecCallBackEx(nPort, DecCBFun, NULL, NULL);
-       PlayM4_Play(nPort, h);
-   }
-   else
-   {
-       BOOL inData = PlayM4_InputData(nPort, pBuffer, dwBufSize);
-   }*/
-   DWORD dRet;
-   switch (dwDataType)
-   {
-     case NET_DVR_SYSHEAD:           //系统头
-       if (!PlayM4_GetPort(&nPort))  //获取播放库未使用的通道号
-       {
-         break;
-       }
-       if (dwBufSize > 0) {
-         if (!PlayM4_SetStreamOpenMode(nPort, STREAME_REALTIME)) {
-           dRet = PlayM4_GetLastError(nPort);
-           break;
-         }
-         if (!PlayM4_OpenStream(nPort, pBuffer, dwBufSize, 1024 * 1024)) {
-           dRet = PlayM4_GetLastError(nPort);
-           break;
-         }
-         //设置解码回调函数 只解码不显示
-        //  if (!PlayM4_SetDecCallBack(nPort, DecCBFun)) {
-        //     dRet = PlayM4_GetLastError(nPort);
-        //     break;
-        //  }
-
-         //设置解码回调函数 解码且显示
-         if (!PlayM4_SetDecCallBackEx(nPort, DecCBFun, NULL, NULL))
-         {
-           dRet = PlayM4_GetLastError(nPort);
-           break;
-         }
-
-         //打开视频解码
-         if (!PlayM4_Play(nPort, h))
-         {
-           dRet = PlayM4_GetLastError(nPort);
-           break;
-         }
-
-         //打开音频解码, 需要码流是复合流
-         if (!PlayM4_PlaySound(nPort)) {
-           dRet = PlayM4_GetLastError(nPort);
-           break;
-         }
-       }
-       break;
-       //usleep(500);
-     case NET_DVR_STREAMDATA:  //码流数据
-       if (dwBufSize > 0 && nPort != -1) {
-         BOOL inData = PlayM4_InputData(nPort, pBuffer, dwBufSize);
-         while (!inData) {
-           sleep(100);
-           inData = PlayM4_InputData(nPort, pBuffer, dwBufSize);
-           std::cerr << "PlayM4_InputData failed \n" << std::endl;
-         }
-       }
-       break;
-   }
-}
-
-void CALLBACK g_ExceptionCallBack(DWORD dwType, LONG lUserID, LONG lHandle, void *pUser)
-{
-   char tempbuf[256] = {0};
-   std::cout << "EXCEPTION_RECONNECT = " << EXCEPTION_RECONNECT << std::endl;
-   switch(dwType)
-   {
-   case EXCEPTION_RECONNECT:	//预览时重连
-       printf("pyd----------reconnect--------%d\n", time(NULL));
-       break;
-   default:
-       break;
-   }
-}
-
-void *RunIPCameraInfo(void *)
-{
-   char IP[]         = "192.168.1.64";   //海康威视网络摄像头的ip
-   char UName[] = "admin";                 //海康威视网络摄像头的用户名
-   char PSW[]      = "a1234567";           //海康威视网络摄像头的密码
-   NET_DVR_Init();
-   NET_DVR_SetConnectTime(2000, 1);
-   NET_DVR_SetReconnect(1000, true);
-   NET_DVR_SetLogToFile(3, "./sdkLog");
-   NET_DVR_DEVICEINFO_V30 struDeviceInfo = {0};
-   NET_DVR_SetRecvTimeOut(5000);
-   lUserID = NET_DVR_Login_V30(IP, 8000, UName, PSW, &struDeviceInfo); //port 16
-   //lUserID = NET_DVR_Login_V30("192.168.1.64", 8000, "admin", "a1234567", &struDeviceInfo); //port 1
-   printf("lUserID=%d\n", lUserID);
-
-   NET_DVR_SetExceptionCallBack_V30(0, NULL, g_ExceptionCallBack, NULL);
-
-   long lRealPlayHandle;
-   NET_DVR_CLIENTINFO ClientInfo = {0};
-
-   ClientInfo.lChannel       = 1;
-   ClientInfo.lLinkMode     = 0;
-   ClientInfo.hPlayWnd     = 0;
-   ClientInfo.sMultiCastIP = NULL;
-
-
-   //lRealPlayHandle = NET_DVR_RealPlay_V30(lUserID, &ClientInfo, PsDataCallBack, NULL, 0);
-   lRealPlayHandle = NET_DVR_RealPlay_V30(lUserID, &ClientInfo, g_RealDataCallBack_V30, NULL, 0);
-   //NET_DVR_SaveRealData(lRealPlayHandle, "/home/lds/source/yuntai.mp4");
-   if (lRealPlayHandle < 0)
-   {
-       printf("pyd1---NET_DVR_RealPlay_V30 error\n");
-   }
-   sleep(-1);
-
-   NET_DVR_Cleanup();
-}
-
-int main(int argc, char *argv[])
-{
-#if 0 //logout
-   NET_DVR_Logout_V30(0);
-#else
-   pthread_t getframe;
-
-   pthread_mutex_init(&mutex, NULL);
-   int ret;
-
-   ret = pthread_create(&getframe, NULL, RunIPCameraInfo, NULL);
-
-
-   if(ret!=0)
-   {
-       printf("Create pthread error!\n");
-   }
-
-   cv::Mat image;
-   while(1)
-   {
-       pthread_mutex_lock(&mutex);
-       if(g_frameList.size())
-       {
-           std::list<cv::Mat>::iterator it;
-           it = g_frameList.end();
-           it--;
-           image = (*(it));
-           if (!image.empty())
-           {
-               imshow("frame from camera",image);
-               cv::waitKey(1);
-           }
-           g_frameList.pop_front();
-       }
-       g_frameList.clear(); // 丢掉旧的帧
-       pthread_mutex_unlock(&mutex);
-   }
-#endif
-   return 0;
-}
-
-#else
+#if 1
 #include "PangoVis.h"
 #include "MainController.h"
 
@@ -264,270 +10,84 @@ int main(int argc, char *argv[])
     return controller.start();
 
 }
-#endif
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-#if 0
-#include "opencv2/opencv.hpp"
-
-#include <QDir>
-#include <fstream>
-#include <unistd.h>
-//#include "auto_entercs.h"
-
-#include "HCNetSDK.h"
-#include "PlayM4.h"
-#include "LinuxPlayM4.h"
-
-#define HPR_ERROR       -1
-#define HPR_OK               0
-#define USECOLOR          0
-
-static cv::Mat dst;
-HWND h = NULL;
-LONG nPort=-1;
-LONG lUserID;
-
-pthread_mutex_t mutex;
-std::list<cv::Mat> g_frameList;
-
-
-FILE *g_pFile = NULL;
-
-void CALLBACK PsDataCallBack(LONG lRealHandle, DWORD dwDataType,BYTE *pPacketBuffer,DWORD nPacketSize, void* pUser)
+#else
+#include <opencv2/opencv.hpp>
+using namespace cv;
+/*** 功能：  检查是否是旋转矩阵**/
+bool isRotationMatrix(Mat &R)
 {
+    Mat Rt;
+    transpose(R, Rt);
+    Mat shouldBeIdentity = Rt * R;
+    Mat I = Mat::eye(3,3, shouldBeIdentity.type());
+    return  norm(I, shouldBeIdentity) < 1e-6;     }
+/*** 功能： 通过给定的旋转矩阵计算对应的欧拉角**/
+Vec3f rotationMatrixToEulerAngles(Mat &R)
+{
+    assert(isRotationMatrix(R));
 
-   if (dwDataType  == NET_DVR_SYSHEAD)
-   {
-       //写入头数据
-       g_pFile = fopen("/home/lds/source/ps.dat", "wb");
+    float sy = sqrt(R.at<double>(0,0) * R.at<double>(0,0) +  R.at<double>(1,0) * R.at<double>(1,0) );
 
-       if (g_pFile == NULL)
-       {
-           printf("CreateFileHead fail\n");
-           return;
-       }
+    bool singular = sy < 1e-6; // If
+    float x, y, z;     if (!singular) {
+        x = atan2(R.at<double>(2,1) , R.at<double>(2,2));
+        y = atan2(-R.at<double>(2,0), sy);
+        z = atan2(R.at<double>(1,0), R.at<double>(0,0));
+    }
+    else
+    {
+        x = atan2(-R.at<double>(1,2), R.at<double>(1,1));
+        y = atan2(-R.at<double>(2,0), sy);
+        z = 0;
+    }
 
-       //写入头数据
-       fwrite(pPacketBuffer, sizeof(unsigned char), nPacketSize, g_pFile);
-       printf("write head len=%d\n", nPacketSize);
-   }
-   else
-   {
-       if(g_pFile != NULL)
-       {
-           fwrite(pPacketBuffer, sizeof(unsigned char), nPacketSize, g_pFile);
-           printf("write data len=%d\n", nPacketSize);
-       }
-   }
+    std::cout<<"Vec3f(x, y, z):"<<Vec3f(x, y, z)<<" du"<<std::endl;
 
+    double euler_X;
+    double euler_Y;
+    double euler_Z;
+
+#define PI 3.141592f
+    euler_X = x * 360.f / 2 / PI;
+    euler_Y = y * 360.f / 2 / PI;
+    euler_Z = z * 360.f / 2 / PI;
+    std::cout<<"Vec3f(euler_X, euler_Y, euler_Z):"<<Vec3f(euler_X, euler_Y, euler_Z)<<" du"<<std::endl;
+
+    return Vec3f(x, y, z);
 }
 
-//void CALLBACK DecCBFun(LONG nPort, char *pBuf, LONG nSize, FRAME_INFO *pFrameInfo, LONG nReserved1, LONG nReserved2)
-void CALLBACK DecCBFun(LONG nPort, char *pBuf, LONG nSize, FRAME_INFO *pFrameInfo, void* nReserved1, LONG nReserved2)
+int main()
 {
-   long lFrameType = pFrameInfo->nType;
+/*
+    float vals[] = {525., 0., 3.1950000000000000e+02,
+                    0., 525., 2.3950000000000000e+02,
+                    0., 0., 1.};
+    Mat RMatrix = Mat(3,3,CV_64F,vals);//CV_32FC1
+*/
+//    cv::Mat RMatrix(3, 3, cv::DataType<float>::type);
 
-     if (lFrameType == T_YV12)
-     {
-      //cv::Mat dst(pFrameInfo->nHeight, pFrameInfo->nWidth,
-      //            CV_8UC3);  // 8UC3表示8bit uchar无符号类型,3通道值
-           dst.create(pFrameInfo->nHeight, pFrameInfo->nWidth,
-                 CV_8UC3);
+    /*
+    Mat RMatrix = (Mat_<double>(3,3) <<
+                 0.8216967021625539, -0.5616453878807308, -0.09679353246723993,
+                 0.5697289121595741, 0.8139357830574649, 0.113655214170312,
+                 0.01494979279626867, -0.1485361886239672, 0.9887939645671457
+               );
+    */
+    Mat RMatrix = (Mat_<double>(3,3) <<
+                 1, 0, 5,
+                 2, 1, 6,
+                 3, 4, 0);
 
-           cv::Mat src(pFrameInfo->nHeight + pFrameInfo->nHeight / 2, pFrameInfo->nWidth, CV_8UC1, (uchar *)pBuf);
-           cv::cvtColor(src, dst, CV_YUV2BGR_YV12);
-           pthread_mutex_lock(&mutex);
-           g_frameList.push_back(dst);
-           pthread_mutex_unlock(&mutex);
-     }
-    usleep(1000);
+    std::cout << "原矩阵:" << RMatrix << std::endl;
+    //逆矩阵
+    RMatrix = RMatrix.inv();
+    std::cout << "矩阵的逆:" << RMatrix << std::endl;
+    //矩阵的转置
+    transpose(RMatrix, RMatrix);
+    std::cout << "矩阵的转置:" << RMatrix << std::endl;
 
-   //cv::Mat src(pFrameInfo->nHeight + pFrameInfo->nHeight / 2, pFrameInfo->nWidth, CV_8UC1, (uchar *)pBuf);
-   //cv::cvtColor(src, dst, CV_YUV2BGR_YV12);
-   //cv::imshow("bgr", dst);
-   //pthread_mutex_lock(&mutex);
-   //g_frameList.push_back(dst);
-   //pthread_mutex_unlock(&mutex);
-   //vw << dst;
-   //cv::waitKey(10);
-
-}
-
-void CALLBACK g_RealDataCallBack_V30(LONG lRealHandle, DWORD dwDataType, BYTE *pBuffer, DWORD dwBufSize,void* dwUser)
-{
-   /*
-   if (dwDataType == 1)
-   {
-       PlayM4_GetPort(&nPort);
-       PlayM4_SetStreamOpenMode(nPort, STREAME_REALTIME);
-       PlayM4_OpenStream(nPort, pBuffer, dwBufSize, 1024 * 1024);
-       PlayM4_SetDecCallBackEx(nPort, DecCBFun, NULL, NULL);
-       PlayM4_Play(nPort, h);
-   }
-   else
-   {
-       BOOL inData = PlayM4_InputData(nPort, pBuffer, dwBufSize);
-   }*/
-   DWORD dRet;
-   switch (dwDataType)
-   {
-     case NET_DVR_SYSHEAD:           //系统头
-       if (!PlayM4_GetPort(&nPort))  //获取播放库未使用的通道号
-       {
-         break;
-       }
-       if (dwBufSize > 0) {
-         if (!PlayM4_SetStreamOpenMode(nPort, STREAME_REALTIME)) {
-           dRet = PlayM4_GetLastError(nPort);
-           break;
-         }
-         if (!PlayM4_OpenStream(nPort, pBuffer, dwBufSize, 1024 * 1024)) {
-           dRet = PlayM4_GetLastError(nPort);
-           break;
-         }
-         //设置解码回调函数 只解码不显示
-        //  if (!PlayM4_SetDecCallBack(nPort, DecCBFun)) {
-        //     dRet = PlayM4_GetLastError(nPort);
-        //     break;
-        //  }
-
-         //设置解码回调函数 解码且显示
-         if (!PlayM4_SetDecCallBackEx(nPort, DecCBFun, NULL, NULL))
-         {
-           dRet = PlayM4_GetLastError(nPort);
-           break;
-         }
-
-         //打开视频解码
-         if (!PlayM4_Play(nPort, h))
-         {
-           dRet = PlayM4_GetLastError(nPort);
-           break;
-         }
-
-         //打开音频解码, 需要码流是复合流
-         if (!PlayM4_PlaySound(nPort)) {
-           dRet = PlayM4_GetLastError(nPort);
-           break;
-         }
-       }
-       break;
-       //usleep(500);
-     case NET_DVR_STREAMDATA:  //码流数据
-       if (dwBufSize > 0 && nPort != -1) {
-         BOOL inData = PlayM4_InputData(nPort, pBuffer, dwBufSize);
-         while (!inData) {
-           sleep(100);
-           inData = PlayM4_InputData(nPort, pBuffer, dwBufSize);
-           std::cerr << "PlayM4_InputData failed \n" << std::endl;
-         }
-       }
-       break;
-   }
-}
-
-void CALLBACK g_ExceptionCallBack(DWORD dwType, LONG lUserID, LONG lHandle, void *pUser)
-{
-   char tempbuf[256] = {0};
-   std::cout << "EXCEPTION_RECONNECT = " << EXCEPTION_RECONNECT << std::endl;
-   switch(dwType)
-   {
-   case EXCEPTION_RECONNECT:	//预览时重连
-       printf("pyd----------reconnect--------%d\n", time(NULL));
-       break;
-   default:
-       break;
-   }
-}
-
-void *RunIPCameraInfo(void *)
-{
-   char IP[]         = "192.168.**.***";   //海康威视网络摄像头的ip
-   char UName[] = "****";                 //海康威视网络摄像头的用户名
-   char PSW[]      = "*****";           //海康威视网络摄像头的密码
-   NET_DVR_Init();
-   NET_DVR_SetConnectTime(2000, 1);
-   NET_DVR_SetReconnect(1000, true);
-   NET_DVR_SetLogToFile(3, "./sdkLog");
-   NET_DVR_DEVICEINFO_V30 struDeviceInfo = {0};
-   NET_DVR_SetRecvTimeOut(5000);
-   lUserID = NET_DVR_Login_V30(IP, 8000, UName, PSW, &struDeviceInfo);
-
-   NET_DVR_SetExceptionCallBack_V30(0, NULL, g_ExceptionCallBack, NULL);
-
-   long lRealPlayHandle;
-   NET_DVR_CLIENTINFO ClientInfo = {0};
-
-   ClientInfo.lChannel       = 1;
-   ClientInfo.lLinkMode     = 0;
-   ClientInfo.hPlayWnd     = 0;
-   ClientInfo.sMultiCastIP = NULL;
-
-
-   //lRealPlayHandle = NET_DVR_RealPlay_V30(lUserID, &ClientInfo, PsDataCallBack, NULL, 0);
-   lRealPlayHandle = NET_DVR_RealPlay_V30(lUserID, &ClientInfo, g_RealDataCallBack_V30, NULL, 0);
-   //NET_DVR_SaveRealData(lRealPlayHandle, "/home/lds/source/yuntai.mp4");
-   if (lRealPlayHandle < 0)
-   {
-       printf("pyd1---NET_DVR_RealPlay_V30 error\n");
-   }
-   sleep(-1);
-
-   NET_DVR_Cleanup();
-}
-
-int main(int argc, char *argv[])
-{
-   pthread_t getframe;
-
-   pthread_mutex_init(&mutex, NULL);
-   int ret;
-
-   ret = pthread_create(&getframe, NULL, RunIPCameraInfo, NULL);
-
-
-   if(ret!=0)
-   {
-       printf("Create pthread error!\n");
-   }
-
-   cv::Mat image;
-   while(1)
-   {
-       pthread_mutex_lock(&mutex);
-       if(g_frameList.size())
-       {
-           std::list<cv::Mat>::iterator it;
-           it = g_frameList.end();
-           it--;
-           image = (*(it));
-           if (!image.empty())
-           {
-               imshow("frame from camera",image);
-               cv::waitKey(1);
-           }
-           g_frameList.pop_front();
-       }
-       g_frameList.clear(); // 丢掉旧的帧
-       pthread_mutex_unlock(&mutex);
-   }
-
-   return 0;
+    rotationMatrixToEulerAngles(RMatrix);
+    return 0;
 }
 
 #endif

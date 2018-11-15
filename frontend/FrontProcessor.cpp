@@ -137,12 +137,30 @@ Mat FrontProcessor::eulerAnglesToRotationMatrix(Vec3f &theta)
 
     // 合并
     Mat R = R_z * R_y * R_x;
-#if 1
+#if 0
     Mat RESULT = (Mat_<double>(3,3) <<
                cos(theta[1])*cos(theta[2]),    sin(theta[0])*sin(theta[1])*cos(theta[2]) - cos(theta[0])*sin(theta[2]),       cos(theta[0])*sin(theta[1])*cos(theta[2]) + sin(theta[0])*sin(theta[2]),
                cos(theta[1])*sin(theta[2]),    sin(theta[0])*sin(theta[1])*sin(theta[2]) + cos(theta[0])*cos(theta[2]),       cos(theta[0])*sin(theta[1])*sin(theta[2]) - sin(theta[0])*cos(theta[2]),
                -sin(theta[1]),                 sin(theta[0])*cos(theta[1]),                                                   cos(theta[0])*cos(theta[1]));
     std::cout << "RES:" << std::endl << RESULT << std::endl;
+#endif
+
+#if 0
+    //R的逆的转置
+    R = R.inv();
+    std::cout << "矩阵的逆:" << R << std::endl;
+    //矩阵的转置
+    transpose(R, R);
+    std::cout<< "after inverse&Transpose R:" << std::endl << R <<std::endl;
+
+    Mat T = Mat_<double>(1,3);
+
+    T.at<double>(0, 0) = -CAMERA_POSTION_X;
+    T.at<double>(0, 1) = -CAMERA_POSTION_Y; //反方向平移，值为负
+    T.at<double>(0, 2) = -CAMERA_POSTION_Z;
+
+    T = -T*R;
+    std::cout<< "True T:" << std::endl << T <<std::endl;
 #endif
     return R;
 }
@@ -150,11 +168,10 @@ Mat FrontProcessor::eulerAnglesToRotationMatrix(Vec3f &theta)
 Mat FrontProcessor::setTMatrix()
 {
     // 计算旋转矩阵的X分量
-    //Mat T = (Mat_<double>(1,3) << 0.f, 0.f,1.f);
     Mat T = Mat_<double>(1,3);
 
     T.at<double>(0, 0) = CAMERA_POSTION_X;
-    T.at<double>(0, 1) = CAMERA_POSTION_Y;
+    T.at<double>(0, 1) = CAMERA_POSTION_Y; //反方向平移，值为负
     T.at<double>(0, 2) = CAMERA_POSTION_Z;
     //std::cout << "T:" << std::endl << T << std::endl;
 

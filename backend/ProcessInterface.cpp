@@ -85,61 +85,6 @@ bool /*inline*/ ProcessInterface::process()
     return true;
 }
 
-bool /*inline*/ ProcessInterface::process(cv::Mat* Intrinsics)
-{
-    //temp
-    printf("ProcessInterface::process(cv::Mat *)\n");
-
-    vector<Point2f> p2d;
-
-    if(firstRun)
-    {
-//        cudaSafeCall(cudaSetDevice(ConfigArgs::get().gpu));
-        firstRun = false;
-    }
-
-    if(!threadPack.pauseCapture.getValue())
-    {
-        TICK(threadIdentifier);
-
-        uint64_t start = Stopwatch::getCurrentSystemTime();
-
-        bool returnVal = true;
-
-        bool shouldEnd = endRequested.getValue();
-
-        if(!logRead->grabNext(returnVal, frame_idx)/* || shouldEnd*/)
-        {
-            threadPack.pauseCapture.assignValue(true);
-            threadPack.finalised.assignValue(true);
-
-
-            return shouldEnd ? false : returnVal;
-        }
-
-        TICK("processFrame");
-
-        //定位到像素坐标系,p2d为输出
-        calc2DCoordinate(Intrinsics, p2d);
-
-        //加水印
-        frontend->processFrame(logRead->decompressedImage, p2d);
-        TOCK("processFrame");
-
-        uint64_t duration = Stopwatch::getCurrentSystemTime() - start;
-
-        if(threadPack.limit.getValue() && duration < 33333)
-        {
-            int sleepTime = std::max(int(33333 - duration), 0);
-            usleep(sleepTime);
-        }
-
-        TOCK(threadIdentifier);
-    }
-
-    return true;
-}
-
 //触发定位时的处理函数
 bool /*inline*/ ProcessInterface::process(cv::Mat * Intrinsics, vector<Point3f> p3d)
 {
@@ -298,6 +243,8 @@ int ProcessInterface::calc2DCoordinate(cv::Mat* Intrinsics, vector<Point3f> poin
     //旋转矩阵转换为旋转向量
     Rodrigues(ThreadDataPack::get().RMatrix, rvec);
 
+    std::cout << "rvec:" << rvec << std::endl;
+
 #ifdef HIKVISION_GRAB_FUNC
     distCoeff.at<double>(0, 0) = -0.3842780507597445;
     distCoeff.at<double>(0, 1) = -0.01026628950727477;
@@ -312,6 +259,17 @@ int ProcessInterface::calc2DCoordinate(cv::Mat* Intrinsics, vector<Point3f> poin
     distCoeff.at<double>(0, 4) = 0.2240573152028148;
 #endif
 
+//added for 三维重建中旋转矩阵与平移矩阵思想误区
+    Mat CMatrix=Mat(3,3,CV_64F,Scalar::all(0));
+    //R的逆的转置
+    CMatrix = ThreadDataPack::get().RMatrix.inv();
+    //矩阵的转置
+    transpose(CMatrix, CMatrix);
+
+    Mat tvec = Mat_<double>(1,3);
+    tvec = /*-*/ThreadDataPack::get().TMatrix * CMatrix;
+    //std::cout<< "True T:" << std::endl << tvec <<std::endl;
+//added end
 
     /*
     float vals[] = {525., 0., 3.1950000000000000e+02,
@@ -332,44 +290,7 @@ int ProcessInterface::calc2DCoordinate(cv::Mat* Intrinsics, vector<Point3f> poin
 ////    points3d[0] = Point3f((double)0.0f, (double)2.2f, (double)24.6f); //set x
     std::cout << "points3d:" << points3d << std::endl;
 
-    projectPoints(Mat(points3d), rvec, ThreadDataPack::get().TMatrix, *Intrinsics/*cameraMatrix*/, distCoeff, points2d);
-
-    std::cout << "Final: calc2DCoordinate(), result:" << std::endl << points2d << std::endl;
-
-    return 0;
-}
-
-int ProcessInterface::calc2DCoordinate(cv::Mat* Intrinsics, vector<Point2f>& points2d)
-{
-    //旋转向量
-    Mat rvec;
-    //畸变系数
-    Mat distCoeff(1,5,CV_64F,Scalar(0));//CV_32FC1
-
-    //旋转矩阵转换为旋转向量
-    Rodrigues(ThreadDataPack::get().RMatrix, rvec);
-
-#if 1
-    distCoeff.at<double>(0, 0) = -0.2756734608366758;
-    distCoeff.at<double>(0, 1) = -0.001303202285062331;
-    distCoeff.at<double>(0, 2) = 0.001005134230599892;
-    distCoeff.at<double>(0, 3) = -0.0008562559253269711;
-    distCoeff.at<double>(0, 4) = 0.2240573152028148;
-#else
-#endif
-
-    //世界坐标系中的一个点
-////    vector<Point2f> points2d;
-    //像素坐标系中的一个点
-    vector<Point3f> points3d(1);
-
-//    points3d[0].x = 10.f;
-//    points3d[0].y = 10.f;
-//    points3d[0].z = 10.f;
-    //points3d[0] = Point3f((double)16.3f, (double)2.2f, (double)2.2f); //set x
-    points3d[0] = Point3f((double)CAMERA_POSTION_X, (double)/*-*/CAMERA_POSTION_Y, (double)CAMERA_POSTION_Z); //set x
-
-    projectPoints(Mat(points3d), rvec, ThreadDataPack::get().TMatrix, *Intrinsics/*cameraMatrix*/, distCoeff, points2d);
+    projectPoints(Mat(points3d), rvec, tvec, *Intrinsics/*cameraMatrix*/, distCoeff, points2d);
 
     std::cout << "Final: calc2DCoordinate(), result:" << std::endl << points2d << std::endl;
 
