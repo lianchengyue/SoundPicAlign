@@ -260,6 +260,7 @@ int ProcessInterface::calc2DCoordinate(cv::Mat* Intrinsics, vector<Point3f> poin
 #endif
 
 //added for 三维重建中旋转矩阵与平移矩阵思想误区
+    //https://blog.csdn.net/weixin_34346607/article/details/52988221
     Mat CMatrix=Mat(3,3,CV_64F,Scalar::all(0));
     //R的逆的转置
     CMatrix = ThreadDataPack::get().RMatrix.inv();

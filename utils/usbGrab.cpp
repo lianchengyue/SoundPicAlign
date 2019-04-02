@@ -117,7 +117,7 @@ cv::Mat* usbGrab::getCurrentFrame()
     //使反色正常
     cvtColor(CurrentFrame, CurrentFrame, CV_RGB2BGR);
     //imshow("1", CurrentFrame);
-    //imwrite("tt.jpg", CurrentFrame);
+    imwrite("tt.jpg", CurrentFrame);
 
     //test
 /*

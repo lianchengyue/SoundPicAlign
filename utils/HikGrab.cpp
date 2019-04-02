@@ -64,6 +64,7 @@ void HikGrab::CALLBACK DecCBFun(LONG nPort, char *pBuf, LONG nSize, FRAME_INFO *
            cv::Mat src(pFrameInfo->nHeight + pFrameInfo->nHeight / 2, pFrameInfo->nWidth, CV_8UC1, (uchar *)pBuf);
            //cv::cvtColor(src, dst, CV_YUV2BGR_YV12);
 //cv::imshow("bgr", dst);
+//cv::waitKey(1);
 //cv::imwrite("bgr.jpg", dst);  //flq
            cv::cvtColor(src, dst, CV_YUV2RGB_YV12);
            pthread_mutex_lock(&mutex);

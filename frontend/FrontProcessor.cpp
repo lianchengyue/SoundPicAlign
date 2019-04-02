@@ -137,6 +137,8 @@ Mat FrontProcessor::eulerAnglesToRotationMatrix(Vec3f &theta)
 
     // 合并
     Mat R = R_z * R_y * R_x;
+
+//测试数据，两个 #if 0, test for 三维重建中旋转矩阵与平移矩阵思想误区
 #if 0
     Mat RESULT = (Mat_<double>(3,3) <<
                cos(theta[1])*cos(theta[2]),    sin(theta[0])*sin(theta[1])*cos(theta[2]) - cos(theta[0])*sin(theta[2]),       cos(theta[0])*sin(theta[1])*cos(theta[2]) + sin(theta[0])*sin(theta[2]),
