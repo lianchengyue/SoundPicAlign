@@ -92,6 +92,7 @@ bool /*inline*/ ProcessInterface::process(cv::Mat * Intrinsics, vector<Point3f> 
     printf("ProcessInterface::process()\n");
 
     vector<Point2f> p2d;
+    vector<Point2f> p2d_Cam2;
 
     if(firstRun)
     {
@@ -122,6 +123,7 @@ bool /*inline*/ ProcessInterface::process(cv::Mat * Intrinsics, vector<Point3f> 
 
         //定位到像素坐标系,p2d为输出
         calc2DCoordinate(Intrinsics, p3d, p2d);
+        calcSecondCam2DCoordinate(Intrinsics, p3d, p2d_Cam2);
 
         //加水印
         frontend->processFrame(logRead->TrigerSavedImage, p2d);//decompressedImage
@@ -246,11 +248,30 @@ int ProcessInterface::calc2DCoordinate(cv::Mat* Intrinsics, vector<Point3f> poin
     std::cout << "rvec:" << rvec << std::endl;
 
 #ifdef HIKVISION_GRAB_FUNC
+///*
+    //4mm, 1920x1080
     distCoeff.at<double>(0, 0) = -0.3842780507597445;
     distCoeff.at<double>(0, 1) = -0.01026628950727477;
     distCoeff.at<double>(0, 2) = -0.001097510941657248;
     distCoeff.at<double>(0, 3) = 0.0002966871455004014;
     distCoeff.at<double>(0, 4) = 0.7321469514653421;
+//*/
+/*
+    //12mm, 4096x2160
+    distCoeff.at<double>(0, 0) = -0.1829310138260891;
+    distCoeff.at<double>(0, 1) = 0.921006884774823;
+    distCoeff.at<double>(0, 2) = -0.006458022608597794;
+    distCoeff.at<double>(0, 3) = 0.007211980182173494;
+    distCoeff.at<double>(0, 4) = -3.849852944304393;
+*/
+/*
+    //25mm, 4096x2160
+    distCoeff.at<double>(0, 0) = -0.892716031334611;
+    distCoeff.at<double>(0, 1) = 12.98805686689792;
+    distCoeff.at<double>(0, 2) = 0.01352535548838887;
+    distCoeff.at<double>(0, 3) = -0.02306571153764621;
+    distCoeff.at<double>(0, 4) = -92.62687091981161;
+*/
 #else
     distCoeff.at<double>(0, 0) = -0.2756734608366758;
     distCoeff.at<double>(0, 1) = -0.001303202285062331;
@@ -294,6 +315,138 @@ int ProcessInterface::calc2DCoordinate(cv::Mat* Intrinsics, vector<Point3f> poin
     projectPoints(Mat(points3d), rvec, tvec, *Intrinsics/*cameraMatrix*/, distCoeff, points2d);
 
     std::cout << "Final: calc2DCoordinate(), result:" << std::endl << points2d << std::endl;
+
+    return 0;
+}
+
+
+int ProcessInterface::calcSecondCam2DCoordinate(cv::Mat * Intrinsics, vector<Point3f> points3d, vector<Point2f>& points2d)
+{
+    //畸变系数
+    Mat distCoeff(1,5,CV_64F,Scalar(0));
+    //4mm, 1920x1080
+    distCoeff.at<double>(0, 0) = -0.3842780507597445;
+    distCoeff.at<double>(0, 1) = -0.01026628950727477;
+    distCoeff.at<double>(0, 2) = -0.001097510941657248;
+    distCoeff.at<double>(0, 3) = 0.0002966871455004014;
+    distCoeff.at<double>(0, 4) = 0.7321469514653421;
+
+    Mat CMatrix=Mat(3,3,CV_64F,Scalar::all(0));
+    //R的逆的转置
+    CMatrix = ThreadDataPack::get().RMatrix.inv();
+    //矩阵的转置
+    transpose(CMatrix, CMatrix);
+
+    Mat tvec = Mat_<double>(1,3);
+    tvec = /*-*/ThreadDataPack::get().TMatrix * CMatrix;
+    std::cout << "FLQ tvec:" << std::endl << tvec << std::endl;
+
+    ///第一次旋转
+    Mat RT1 = Mat(4,4,CV_64F,Scalar::all(0));
+    RT1.at<double>(0, 0) = ThreadDataPack::get().RMatrix.at<double>(0, 0);
+    RT1.at<double>(0, 1) = ThreadDataPack::get().RMatrix.at<double>(0, 1);
+    RT1.at<double>(0, 2) = ThreadDataPack::get().RMatrix.at<double>(0, 2);
+    RT1.at<double>(0, 3) = tvec.at<double>(0, 0);
+
+    RT1.at<double>(1, 0) = ThreadDataPack::get().RMatrix.at<double>(1, 0);
+    RT1.at<double>(1, 1) = ThreadDataPack::get().RMatrix.at<double>(1, 1);
+    RT1.at<double>(1, 2) = ThreadDataPack::get().RMatrix.at<double>(1, 2);
+    RT1.at<double>(1, 3) = tvec.at<double>(0, 1);
+
+    RT1.at<double>(2, 0) = ThreadDataPack::get().RMatrix.at<double>(2, 0);
+    RT1.at<double>(2, 1) = ThreadDataPack::get().RMatrix.at<double>(2, 1);
+    RT1.at<double>(2, 2) = ThreadDataPack::get().RMatrix.at<double>(2, 2);
+    RT1.at<double>(2, 3) = tvec.at<double>(0, 2);
+
+    RT1.at<double>(3, 0) = 0;
+    RT1.at<double>(3, 1) = 0;
+    RT1.at<double>(3, 2) = 0;
+    RT1.at<double>(3, 3) = 1;
+
+    ///再次旋转平移,C = RT x W
+    //Input R2
+    Mat R2 = Mat(3,3,CV_64F,Scalar::all(0));
+    //写入旋转矩阵:
+    //R2.at<double>(0, 0) = 1;
+    //R2.at<double>(0, 1) = 0;
+    //R2.at<double>(0, 2) = 0;
+    //R2.at<double>(1, 0) = 0;
+    //R2.at<double>(1, 1) = 1;
+    //R2.at<double>(1, 2) = 0;
+    //R2.at<double>(2, 0) = 0;
+    //R2.at<double>(2, 1) = 0;
+    //R2.at<double>(2, 2) = 1;
+    R2.at<double>(0, 0) = 9.9895269554121646e-001;
+    R2.at<double>(0, 1) = 3.7410010228289346e-004;
+    R2.at<double>(0, 2) = 4.5753383700566939e-002;
+    R2.at<double>(1, 0) = -2.0569609566232247e-004;
+    R2.at<double>(1, 1) = 9.9999318794707170e-001;
+    R2.at<double>(1, 2) = -3.6853423950571969e-003;
+    R2.at<double>(2, 0) = -4.5754450713062465e-002;
+    R2.at<double>(2, 1) = 3.6720714271441632e-003;
+    R2.at<double>(2, 2) = 9.9894596757351195e-001;
+
+    //Input T2
+    Mat T2 = Mat(1,3,CV_64F,Scalar::all(0));
+    //写入平移矩阵
+    //T2.at<double>(0, 0) = 0;
+    //T2.at<double>(0, 1) = 0;
+    //T2.at<double>(0, 2) = 0;
+    T2.at<double>(0, 0) = -0.8773498;
+    T2.at<double>(0, 1) = 0.0011230;
+    T2.at<double>(0, 2) = 0.0000436;
+
+    Mat RT2 = Mat(4,4,CV_64F,Scalar::all(0));
+    RT2.at<double>(0, 0) = R2.at<double>(0, 0);
+    RT2.at<double>(0, 1) = R2.at<double>(0, 1);
+    RT2.at<double>(0, 2) = R2.at<double>(0, 2);
+    RT2.at<double>(0, 3) = T2.at<double>(0, 0);
+
+    RT2.at<double>(1, 0) = R2.at<double>(1, 0);
+    RT2.at<double>(1, 1) = R2.at<double>(1, 1);
+    RT2.at<double>(1, 2) = R2.at<double>(1, 2);
+    RT2.at<double>(1, 3) = T2.at<double>(0, 1);
+
+    RT2.at<double>(2, 0) = R2.at<double>(2, 0);
+    RT2.at<double>(2, 1) = R2.at<double>(2, 1);
+    RT2.at<double>(2, 2) = R2.at<double>(2, 2);
+    RT2.at<double>(2, 3) = T2.at<double>(0, 2);
+
+    RT2.at<double>(3, 0) = 0;
+    RT2.at<double>(3, 1) = 0;
+    RT2.at<double>(3, 2) = 0;
+    RT2.at<double>(3, 3) = 1;
+
+    ///最终旋转平移
+    Mat RTFinal = RT1 * RT2;
+    std::cout<< "最终旋转平移:" << std::endl << RTFinal <<std::endl;
+
+    //相机2的旋转平移向量
+    //旋转向量
+    Mat rvecFinal;
+
+    Mat RFinal = Mat(3,3,CV_64F,Scalar::all(0));
+    RFinal.at<double>(0, 0) = RTFinal.at<double>(0, 0);
+    RFinal.at<double>(0, 1) = RTFinal.at<double>(0, 1);
+    RFinal.at<double>(0, 2) = RTFinal.at<double>(0, 2);
+    RFinal.at<double>(1, 0) = RTFinal.at<double>(1, 0);
+    RFinal.at<double>(1, 1) = RTFinal.at<double>(1, 1);
+    RFinal.at<double>(1, 2) = RTFinal.at<double>(1, 2);
+    RFinal.at<double>(2, 0) = RTFinal.at<double>(2, 0);
+    RFinal.at<double>(2, 1) = RTFinal.at<double>(2, 1);
+    RFinal.at<double>(2, 2) = RTFinal.at<double>(2, 2);
+
+    Mat TFinal = Mat(1,3,CV_64F,Scalar::all(0));
+    TFinal.at<double>(0, 0) = RTFinal.at<double>(0, 3);
+    TFinal.at<double>(0, 1) = RTFinal.at<double>(1, 3);
+    TFinal.at<double>(0, 2) = RTFinal.at<double>(2, 3);
+
+    Rodrigues(RFinal, rvecFinal);
+
+    //投影
+    projectPoints(Mat(points3d), rvecFinal, TFinal, *Intrinsics/*cameraMatrix*/, distCoeff, points2d);
+
+    std::cout << "Final: calcSecondCam2DCoordinate(), result:" << std::endl << points2d << std::endl;
 
     return 0;
 }

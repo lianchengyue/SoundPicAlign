@@ -99,6 +99,8 @@ void MainController::loadCalibration()
     Intrinsics = new cv::Mat(cv::Mat::zeros(3, 3, CV_64F));
 
 #ifdef HIKVISION_GRAB_FUNC
+///*
+    //4mm, 1920x1080
     Intrinsics->at<double>(0, 2) = 944.740327771722;
     Intrinsics->at<double>(1, 2) = 587.2490988141938;
     Intrinsics->at<double>(0, 0) = 1325.47033073642;
@@ -111,6 +113,37 @@ void MainController::loadCalibration()
     distCoeff->at<double>(0, 2) = -0.001097510941657248;
     distCoeff->at<double>(0, 3) = 0.0002966871455004014;
     distCoeff->at<double>(0, 4) = 0.7321469514653421;
+//*/
+/*
+    //12mm, 4096x2160
+    Intrinsics->at<double>(0, 2) = 2058.807559042791;
+    Intrinsics->at<double>(1, 2) = 1107.865716534388;
+    Intrinsics->at<double>(0, 0) = 3451.112107600577;
+    Intrinsics->at<double>(1, 1) = 3470.458679134347;
+    Intrinsics->at<double>(2, 2) = 1;
+
+    distCoeff = new cv::Mat(cv::Mat::zeros(1,5,CV_64F));
+    distCoeff->at<double>(0, 0) = -0.1829310138260891;
+    distCoeff->at<double>(0, 1) = 0.921006884774823;
+    distCoeff->at<double>(0, 2) = -0.006458022608597794;
+    distCoeff->at<double>(0, 3) = 0.007211980182173494;
+    distCoeff->at<double>(0, 4) = -3.849852944304393;
+*/
+/*
+    //25mm, 4096x2160
+    Intrinsics->at<double>(0, 2) = 2047.826161062829;
+    Intrinsics->at<double>(1, 2) = 1083.470877609614;
+    Intrinsics->at<double>(0, 0) = 10052.25141379218;
+    Intrinsics->at<double>(1, 1) = 10251.85599075164;
+    Intrinsics->at<double>(2, 2) = 1;
+
+    distCoeff = new cv::Mat(cv::Mat::zeros(1,5,CV_64F));
+    distCoeff->at<double>(0, 0) = -0.892716031334611;
+    distCoeff->at<double>(0, 1) = 12.98805686689792;
+    distCoeff->at<double>(0, 2) = 0.01352535548838887;
+    distCoeff->at<double>(0, 3) = -0.02306571153764621;
+    distCoeff->at<double>(0, 4) = -92.62687091981161;
+*/
 #else
     Intrinsics->at<double>(0, 2) = 337.0261692101221;
     Intrinsics->at<double>(1, 2) = 234.7394852970879;
